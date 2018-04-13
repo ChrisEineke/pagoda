@@ -1,0 +1,16 @@
+#!/usr/bin/env node
+
+const cli = require("command-line-args")
+
+const template = require("../src/template")
+const manifest = require("../src/manifest")
+
+const rootManifestFilepath = process.argv[2] || "manifest.yaml"
+const rootManifest = manifest.Factory.FromYamlFile(rootManifestFilepath)
+const deploymentTemplate = template.Factory.FromId(rootManifest.deployment)
+deploymentTemplate.map(function (t, i) {
+    t.generate({
+        id: rootManifest.id,
+        owner: rootManifest.owner,
+    })
+})

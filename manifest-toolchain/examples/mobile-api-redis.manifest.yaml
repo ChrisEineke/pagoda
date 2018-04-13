@@ -1,0 +1,8 @@
+version: 1
+manifest:
+  id: mobile-redis
+  owner: mobile
+  provides:
+    - id: mobile-redis
+      elasticache-redis:
+        template: zenreach-redis-medium

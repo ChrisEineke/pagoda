@@ -1,0 +1,8 @@
+version: 1
+manifest:
+  id: platform-mongodb
+  owner: platform
+  provides:
+    - id: platform-mongodb
+      mongodb:
+        template: zenreach-platform-mongodb

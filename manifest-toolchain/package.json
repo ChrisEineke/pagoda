@@ -1,0 +1,21 @@
+{
+  "name": "manifest-toolchain",
+  "version": "1.0.0",
+  "description": "Zenreach Pagoda -- Manifest Toolchain",
+  "main": "index.js",
+  "bin": "./bin/pagoda-manifest",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "test"
+  },
+  "author": "Chris Eineke <chris@greenfieldlabs.ca>",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "ajv": "^6.4.0",
+    "command-line-args": "^5.0.2",
+    "js-yaml": "^3.11.0",
+    "liquidjs": "^3.1.2"
+  }
+}

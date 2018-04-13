@@ -1,0 +1,8 @@
+version: 1
+manifest:
+  id: platform-cassandra
+  owner: platform
+  provides:
+    - id: platform-cassandra
+      cassandra:
+        template: zenreach-platform-cassandra
