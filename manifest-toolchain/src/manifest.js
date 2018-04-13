@@ -1,6 +1,8 @@
 const Ajv = require("ajv")
-const fs = require("fs")
+const fs = require("fs-extra")
 const path = require("path")
+const util = require("util")
+const when = require("when")
 const yaml = require("js-yaml")
 
 
@@ -11,42 +13,95 @@ function raise(fmt, ...args) {
 
 class ManifestV1 {
 
-    constructor(id, owner, requires, provides, deployment) {
+    constructor(id, owner, requires, provides, resources, integrations, deployments) {
         this.id = id
         this.owner = owner
         this.requires = requires
         this.provides = provides
-        this.deployment = deployment
+        this.resources = resources
+        this.integrations = integrations
+        this.deployments = deployments
     }
 
 }
 
 class ManifestFactory {
 
-    static FromYamlFile(filepath) {
-        const doc = yaml.safeLoad(fs.readFileSync(filepath, "utf-8"))
-        return ManifestFactory.FromJsonDoc(doc)
+    constructor(dirpaths) {
+        this.dirpaths = dirpaths
     }
 
-    static FromJsonDoc(doc) {
+    fromId(id) {
+        const competitors = this.dirpaths.map(dirpath => {
+            return path.join(dirpath, id + ".manifest.yaml")
+        })
+        return when.map(competitors, competitor => {
+            return this.fromYamlFile(competitor)
+        }).then(race => {
+            const winner = race.filter(x => !!x)[0]
+            if (!winner) {
+                raise("Manifest ID not found: %s", id)
+            }
+            return winner
+        })
+    }
+
+    fromYamlFile(filepath) {
+        try {
+            const doc = yaml.safeLoad(fs.readFileSync(filepath, "utf-8"))
+            return this.fromJsonDoc(doc)
+        }
+        catch (e) {
+            return null
+        }
+    }
+
+    fromJsonDoc(doc) {
         const ajv = new Ajv()
         const validate = ajv.compile({
             "type": "object",
             "properties": {
-                "version": { "$ref": "#/definitions/version" },
-                "id": { "$ref": "#/definitions/id" },
-                "owner": { "$ref": "#/definitions/owner" },
-                "requires": { "$ref": "#/definitions/requires" },
-                "provides": { "$ref": "#/definitions/provides" },
-                "deployment": { "$ref": "#/definitions/deployment" },
+                "version":      { "$ref": "#/definitions/version" },
+                "id":           { "$ref": "#/definitions/id" },
+                "owner":        { "$ref": "#/definitions/owner" },
+                "requires":     { "$ref": "#/definitions/requires" },
+                "provides":     { "$ref": "#/definitions/provides" },
+                "resources":    { "$ref": "#/definitions/resources" },
+                "integrations": { "$ref": "#/definitions/integrations" },
+                "deployments":  { "$ref": "#/definitions/deployments" },
             },
             "definitions": {
                 "version": { "type": "integer" },
                 "id": { "type": "string" },
                 "owner": { "type": "string" },
-                "requires": { "type": "array", "items": { "type": "object" } },
-                "provides": { "type": "array", "items": { "type": "object" } },
-                "deployment": { "type": "string" },
+                "requires": {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/id" }
+                },
+                "provides": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": { "$ref": "#/definitions/id" },
+                        },
+                        "patternProperties": {
+                            "[a-z0-9_\-]*": true
+                        }
+                    }
+                },
+                "resources": {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/id" }
+                },
+                "integrations": {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/id" }
+                },
+                "deployments": {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/id" },
+                },
             },
         })
         const valid = validate(doc)
@@ -56,10 +111,16 @@ class ManifestFactory {
         if (doc.version != 1) {
             raise("Invalid version: given %d, supported %d", doc.version, 1)
         }
-        return new ManifestV1(doc.manifest.id, doc.manifest.owner, doc.manifest.requires, doc.manifest.provides,
-            doc.manifest.deployment)
+        return new ManifestV1(
+            doc.manifest.id,
+            doc.manifest.owner,
+            doc.manifest.requires,
+            doc.manifest.provides,
+            doc.manifest.resources,
+            doc.manifest.integrations,
+            doc.manifest.deployments)
     }
 }
 
 module.exports.ManifestV1 = ManifestV1
-module.exports.Factory = ManifestFactory
+module.exports.ManifestFactory = ManifestFactory

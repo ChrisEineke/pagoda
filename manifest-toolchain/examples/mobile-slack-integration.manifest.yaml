@@ -4,5 +4,4 @@ manifest:
   owner: mobile
   provides:
     - id: mobile-slack-integration
-      slack-integration:
-        template: zenreach-slack
+      template: zenreach-slack

@@ -1,0 +1,56 @@
+version: 1
+template:
+  id: init.tf
+  contents: |
+   terraform {
+     backend "s3" {
+       region         = "us-west-2"
+       bucket         = "zp-uw2-terraform"
+       key            = "zp/uw2/{{ id }}.tfstate"
+       dynamodb_table = "terraform-state-lock"
+     }
+   }
+   
+   provider "aws" {
+     region              = "us-west-2"
+     allowed_account_ids = ["918769896082"]
+   }
+   
+   module "zenreach" {
+     source = "../../../modules/zenreach"
+     env    = "zp"
+     region = "us-west-2"
+   }
+   
+   data "terraform_remote_state" "global" {
+     backend = "s3"
+   
+     config {
+       region         = "us-west-2"
+       bucket         = "zp-uw2-terraform"
+       key            = "zp/global.tfstate"
+       dynamodb_table = "terraform-state-lock"
+     }
+   }
+   
+   data "terraform_remote_state" "net" {
+     backend = "s3"
+   
+     config {
+       region         = "us-west-2"
+       bucket         = "zp-uw2-terraform"
+       key            = "zp/uw2/net.tfstate"
+       dynamodb_table = "terraform-state-lock"
+     }
+   }
+   
+   data "terraform_remote_state" "ecs" {
+     backend = "s3"
+   
+     config {
+       region         = "us-west-2"
+       bucket         = "zp-uw2-terraform"
+       key            = "zp/uw2/ecs-prime.tfstate"
+       dynamodb_table = "terraform-state-lock"
+     }
+   }

@@ -4,5 +4,4 @@ manifest:
   owner: platform
   provides:
     - id: platform-mongodb
-      mongodb:
-        template: zenreach-platform-mongodb
+      template: zenreach-platform-mongodb

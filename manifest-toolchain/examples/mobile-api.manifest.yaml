@@ -5,16 +5,18 @@ manifest:
   requires:
     - platform-mongodb
     - platform-cassandra
-    - mobile-slack-integration
-    - mobile-api-redis
-    - mobile-api-s3
     - mobile-splitio-secret
     - mobile-onesignal-secret
   provides:
     - id: mobile-api-http
-      service:
-        port: 80
+      port: 80
     - id: mobile-api-metrics
-      service:
-        port: 9300
-  deployment: zenreach-shippable-with-elb
+      port: 9300
+  resources:
+    - mobile-api-repo
+    - mobile-api-redis
+    - mobile-api-s3
+  integrations:
+    - mobile-slack-integration
+  deployments:
+    - zenreach-shippable-with-elb

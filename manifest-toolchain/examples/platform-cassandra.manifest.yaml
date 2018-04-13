@@ -4,5 +4,4 @@ manifest:
   owner: platform
   provides:
     - id: platform-cassandra
-      cassandra:
-        template: zenreach-platform-cassandra
+      template: zenreach-platform-cassandra

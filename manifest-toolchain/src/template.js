@@ -1,12 +1,42 @@
 const Ajv = require("ajv")
-const fs = require("fs")
+const fs = require("fs-extra")
 const Liquid = require("liquidjs")
 const path = require("path")
+const util = require("util")
+const when = require("when")
 const yaml = require("js-yaml")
+
+
+const ajv = new Ajv()
+const engine = Liquid();
 
 function raise(fmt, ...args) {
     const msg = util.format(fmt, ...args)
     throw new Error(msg)
+}
+
+const TEMPLATE_V1_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "version":   { "$ref": "#/definitions/version" },
+        "template": { "$ref": "#/definitions/template" },
+        "templates": { "$ref": "#/definitions/templates" },
+    },
+    "definitions": {
+        "version": { "type": "integer" },
+        "id": { "type": "string" },
+        "templates": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/template" }
+        },
+        "template": {
+            "type": "object",
+            "properties": {
+                "id": { "$ref": "#/definitions/id" },
+                "contents": { "type": "string" },
+            },
+        },
+    },
 }
 
 class TemplateV1 {
@@ -17,48 +47,49 @@ class TemplateV1 {
     }
 
     generate(context) {
-        var engine = Liquid();
-        engine.parseAndRender(this.contents, context).then(console.log)
+        return when(engine.parseAndRender(this.contents, context)).then((contents) => {
+            return {
+                id: this.id,
+                contents: contents,
+            }
+        })
     }
 
 }
 
 class TemplateFactory {
 
-    static FromId(id) {
-        const templateFilepath = path.join("templates/", id + ".template.yaml")
-        return TemplateFactory.FromYamlFile(templateFilepath)
+    constructor(dirpaths) {
+        this.dirpaths = dirpaths
     }
 
-    static FromYamlFile(filepath) {
-        const doc = yaml.safeLoad(fs.readFileSync(filepath, "utf-8"))
-        return TemplateFactory.FromJsonDoc(doc)
-    }
-
-    static FromJsonDoc(doc) {
-        const ajv = new Ajv()
-        const validate = ajv.compile({
-            "type": "object",
-            "properties": {
-                "version": { "$ref": "#/definitions/version" },
-                "templates": { "$ref": "#/definitions/templates" },
-            },
-            "definitions": {
-                "version": { "type": "integer" },
-                "templates": {
-                    "type": "array",
-                    "items": { "$ref": "#/definitions/template" }
-                },
-                "template": {
-                    "type": "object",
-                    "properties": {
-                        "id": { "$ref": "#/definitions/id" },
-                        "contents": { "type": "string" },
-                    },
-                },
-                "id": { "type": "string" },
-            },
+    fromId(id) {
+        const competitors = this.dirpaths.map(dirpath => {
+            return path.join(dirpath, id + ".template.yaml")
         })
+        return when.map(competitors, competitor => {
+            return this.fromYamlFile(competitor)
+        }).then(race => {
+            const winner = race.filter(x => !!x)[0]
+            if (!winner) {
+                raise("Template ID not found: %s", id)
+            }
+            return winner
+        })
+    }
+
+    fromYamlFile(filepath) {
+        return fs.pathExists(filepath).then(exists => {
+            if (exists === false) {
+                return null
+            }
+            const doc = yaml.safeLoad(fs.readFileSync(filepath, "utf-8"))
+            return this.fromJsonDoc(doc)
+        })
+    }
+
+    fromJsonDoc(doc) {
+        const validate = ajv.compile(TEMPLATE_V1_SCHEMA)
         const valid = validate(doc)
         if (!valid) {
             raise("Invalid template format: %j", ajv.errors)
@@ -66,11 +97,17 @@ class TemplateFactory {
         if (doc.version != 1) {
             raise("Invalid version: given %d, supported %d", doc.version, 1)
         }
-        return doc.templates.map(function (t, i) {
-            return new TemplateV1(t.id, t.contents)
+        var templates
+        if (doc.template) {
+            templates = [ doc.template ]
+        } else {
+            templates = doc.templates
+        }
+        return templates.map(function (template, i) {
+            return new TemplateV1(template.id, template.contents)
         })
     }
 }
 
 module.exports.TemplateV1 = TemplateV1
-module.exports.Factory =  TemplateFactory
+module.exports.TemplateFactory =  TemplateFactory

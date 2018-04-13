@@ -1,0 +1,12 @@
+version: 1
+template:
+  id: s3.tf
+  contents: |
+   resource "aws_s3_bucket" "{{ id }}" {
+     bucket = "${module.zenreach.prefix}{{ id }}"
+
+     tags {
+       Name        = "${module.zenreach.prefix}{{ id }}"
+       Environment = "${module.zenreach.env}"
+     }
+   }

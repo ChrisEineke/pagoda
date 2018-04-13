@@ -1,4 +1,3 @@
-module.exports = {
-    template: require("./template"),
-    manifest: require("./manifest"),
-}
+Object.assign(module.exports
+    , require("./template")
+    , require("./manifest"))

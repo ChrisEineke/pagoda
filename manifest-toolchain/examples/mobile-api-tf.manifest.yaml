@@ -1,0 +1,7 @@
+version: 1
+manifest:
+  id: mobile-api-tf
+  owner: mobile
+  provides:
+    - id: mobile-api-tf
+      template: zenreach-terraform-state

@@ -1,0 +1,9 @@
+version: 1
+template:
+  id: repo.tf
+  contents: |
+   module "ecr_{{ id }}" {
+     source   = "../../../modules/ecr_repo"
+     name     = "{{ id }}"
+     accounts = "${values(module.zenreach.accounts)}"
+   }

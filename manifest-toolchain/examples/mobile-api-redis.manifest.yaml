@@ -4,5 +4,4 @@ manifest:
   owner: mobile
   provides:
     - id: mobile-redis
-      elasticache-redis:
-        template: zenreach-redis-medium
+      template: zenreach-redis-medium
