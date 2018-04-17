@@ -4,9 +4,6 @@
   "description": "Zenreach Pagoda -- Manifest Toolchain",
   "main": "index.js",
   "bin": "./bin/pagoda-manifest",
-  "directories": {
-    "example": "examples"
-  },
   "scripts": {
     "test": "test"
   },

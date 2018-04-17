@@ -32,17 +32,22 @@ winston.level = options["logLevel"] || "info"
 const outputDir = options["outputDir"] || tmp.dirSync().name
 
 const manifestFilepath = options["manifest"] || "manifest.yaml"
-const manifestFactory = new Pagoda.ManifestFactory([
+const manifestDAO = new Pagoda.ManifestDAO([
     path.dirname(path.resolve(process.cwd(), manifestFilepath)),
     path.resolve(process.cwd(), "stereotypes"),
     path.resolve(__dirname, "../stereotypes"),
     process.cwd(),
 ])
-const manifest = manifestFactory.fromYamlFile(manifestFilepath)
-const templateFactory = new Pagoda.TemplateFactory([
+const templateDAO = new Pagoda.TemplateDAO([
     path.dirname(path.resolve(process.cwd(), manifestFilepath)),
     path.resolve(process.cwd(), "templates"),
     path.resolve(__dirname, "../templates"),
+    process.cwd(),
+])
+const stereotypeDAO = new Pagoda.StereotypeDAO([
+    path.dirname(path.resolve(process.cwd(), manifestFilepath)),
+    path.resolve(process.cwd(), "stereotypes"),
+    path.resolve(__dirname, "../stereotypes"),
     process.cwd(),
 ])
 const command = commandOptions["command"]
@@ -55,7 +60,21 @@ function generateTemplates(templates, context, outputDir) {
     })
 }
 
-when(manifest.applyStereotype(manifestFactory, templateFactory)).then(manifest => {
+when(manifestDAO.fromYamlFile(manifestFilepath)).then(manifest => {
+    return manifest.applyStereotype(stereotypeDAO)
+}).then(manifest => {
+    if (command == "show") {
+        console.log(manifestDAO.toYaml(manifest))
+    }
+
+    if (command == "compile") {
+        when.try(() => {
+            return fs.ensureDir(outputDir)
+        }).then(() => {
+            return manifestDAO.toYamlFile(manifest, path.join(outputDir, 'manifest.yaml'))
+        })
+    }
+
     if (command == "compile-requires" || command == "compile") {
         /*
          * Generate dependency checks.
@@ -70,9 +89,9 @@ when(manifest.applyStereotype(manifestFactory, templateFactory)).then(manifest =
             return fs.ensureDir(outputDir)
         }).then(() => {
             return when.map(manifest.resources, manifestId => {
-                return manifestFactory.fromId(manifestId).then(manifest => {
+                return manifestDAO.fromId(manifestId).then(manifest => {
                     return when.map(manifest.provides, provide => {
-                        return generateTemplates(templateFactory.fromId(provide.template), {
+                        return generateTemplates(templateDAO.fromId(provide.template), {
                             id: manifest.id,
                             owner: manifest.owner,
                         }, outputDir)
@@ -90,13 +109,11 @@ when(manifest.applyStereotype(manifestFactory, templateFactory)).then(manifest =
             return fs.ensureDir(outputDir)
         }).then(() => {
             return when.map(manifest.deployments, deploymentId => {
-                return generateTemplates(templateFactory.fromId(deploymentId), {
+                return generateTemplates(templateDAO.fromId(deploymentId), {
                     id: manifest.id,
                     owner: manifest.owner,
                 }, outputDir)
             })
         })
     }
-
-    console.log(outputDir)
 })

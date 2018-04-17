@@ -2,21 +2,16 @@ version: 1
 manifest:
   id: mobile-api
   owner: mobile
+  stereotype: platypus-go-microservice
   requires:
     - platform-mongodb
     - platform-cassandra
     - mobile-splitio-secret
     - mobile-onesignal-secret
   provides:
-    - id: mobile-api-http
-      port: 80
-    - id: mobile-api-metrics
-      port: 9300
   resources:
-    - mobile-api-repo
     - mobile-api-redis
     - mobile-api-s3
   integrations:
     - mobile-slack-integration
   deployments:
-    - zenreach-shippable-with-elb

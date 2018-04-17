@@ -1,43 +1,16 @@
 const Ajv = require("ajv")
 const fs = require("fs-extra")
-const Liquid = require("liquidjs")
 const path = require("path")
+const raise = require("./raiseFn")
+const renderTemplate = require("./render-template")
 const util = require("util")
 const when = require("when")
 const yaml = require("js-yaml")
 
 
-const TEMPLATE_V1_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "version":   { "$ref": "#/definitions/version" },
-        "template": { "$ref": "#/definitions/template" },
-        "templates": { "$ref": "#/definitions/templates" },
-    },
-    "definitions": {
-        "version": { "type": "integer" },
-        "id": { "type": "string" },
-        "templates": {
-            "type": "array",
-            "items": { "$ref": "#/definitions/template" }
-        },
-        "template": {
-            "type": "object",
-            "properties": {
-                "id": { "$ref": "#/definitions/id" },
-                "contents": { "type": "string" },
-            },
-        },
-    },
-}
-
 const ajv = new Ajv()
-const engine = Liquid();
-
-function raise(fmt, ...args) {
-    const msg = util.format(fmt, ...args)
-    throw new Error(msg)
-}
+const schema = require("./template_v1.schema.json")
+const validateTemplate = ajv.compile(schema)
 
 class TemplateV1 {
 
@@ -47,7 +20,7 @@ class TemplateV1 {
     }
 
     generate(context) {
-        return when(engine.parseAndRender(this.contents, context)).then((contents) => {
+        return when(renderTemplate(this.contents, context)).then((contents) => {
             return {
                 id: this.id,
                 contents: contents,
@@ -57,7 +30,7 @@ class TemplateV1 {
 
 }
 
-class TemplateFactory {
+class TemplateDAO {
 
     constructor(dirpaths) {
         this.dirpaths = dirpaths
@@ -89,8 +62,7 @@ class TemplateFactory {
     }
 
     fromJsonDoc(doc) {
-        const validate = ajv.compile(TEMPLATE_V1_SCHEMA)
-        const valid = validate(doc)
+        const valid = validateTemplate(doc)
         if (!valid) {
             raise("Invalid template format: %j", ajv.errors)
         }
@@ -110,4 +82,4 @@ class TemplateFactory {
 }
 
 module.exports.TemplateV1 = TemplateV1
-module.exports.TemplateFactory =  TemplateFactory
+module.exports.TemplateDAO = TemplateDAO

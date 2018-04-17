@@ -4,6 +4,14 @@ npm install
 ```
 
 # Run
+
+## Print processed manifest
 ```
-./bin/pagoda-manifest all ./examples/mobile-api.manifest.yl --outputDir=gen
+./bin/pagoda-manifest show manifests/mobile-api.manifest.yaml
+```
+
+## Compile manifest into fragments
+```
+./bin/pagoda-manifest compile manifests/mobile-api.manifest.yaml --outputDir=gen
+
 ```

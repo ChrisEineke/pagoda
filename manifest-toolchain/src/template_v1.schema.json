@@ -1,0 +1,25 @@
+{
+    "type": "object",
+    "properties": {
+        "version": { "$ref": "#/definitions/version" },
+        "template": { "$ref": "#/definitions/template" },
+        "templates": { "$ref": "#/definitions/templates" }
+    },
+    "definitions": {
+        "version": { "type": "integer" },
+        "id": { "type": "string" },
+        "templates": {
+            "oneOf": [ {
+                "type": "array",
+                "items": { "$ref": "#/definitions/template" }
+            }, { "type": "null" } ]
+        },
+        "template": {
+            "type": "object",
+            "properties": {
+                "id": { "$ref": "#/definitions/id" },
+                "contents": { "type": "string" }
+            }
+        }
+    }
+}

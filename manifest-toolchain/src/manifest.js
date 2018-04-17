@@ -6,64 +6,12 @@ const util = require("util")
 const when = require("when")
 const winston = require("winston")
 const yaml = require("js-yaml")
+const raise = require("./raiseFn")
 
 
-const MANIFEST_V1_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "version":      { "$ref": "#/definitions/version" },
-        "manifest":     { "$ref": "#/definitions/manifest" },
-    },
-    "definitions": {
-        "version": { "type": "integer" },
-        "manifest": {
-            "id":           { "$ref": "#/definitions/id" },
-            "owner":        { "$ref": "#/definitions/owner" },
-            "stereotype":   { "$ref": "#/definitions/stereotype" },
-            "requires":     { "$ref": "#/definitions/requires" },
-            "provides":     { "$ref": "#/definitions/provides" },
-            "resources":    { "$ref": "#/definitions/resources" },
-            "integrations": { "$ref": "#/definitions/integrations" },
-            "deployments":  { "$ref": "#/definitions/deployments" },
-        },
-        "id": { "type": "string" },
-        "owner": { "type": "string" },
-        "stereotype": { "$ref": "#/definitions/id" },
-        "requires": {
-            "type": "array",
-            "items": { "$ref": "#/definitions/id" }
-        },
-        "provides": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id": { "$ref": "#/definitions/id" },
-                },
-                "patternProperties": {
-                    "[a-z0-9_\-]*": true
-                }
-            }
-        },
-        "resources": {
-            "type": "array",
-            "items": { "$ref": "#/definitions/id" }
-        },
-        "integrations": {
-            "type": "array",
-            "items": { "$ref": "#/definitions/id" }
-        },
-        "deployments": {
-            "type": "array",
-            "items": { "$ref": "#/definitions/id" },
-        },
-    },
-}
-
-function raise(fmt, ...args) {
-    const msg = util.format(fmt, ...args)
-    throw new Error(msg)
-}
+const ajv = new Ajv()
+const schema = require("./manifest_v1.schema.json")
+const validateManifest = ajv.compile(schema)
 
 class ManifestV1 {
 
@@ -71,39 +19,35 @@ class ManifestV1 {
         this.id = id
         this.owner = owner
         this.stereotype = stereotype
-        this.requires = requires
-        this.provides = provides
-        this.resources = resources
-        this.integrations = integrations
-        this.deployments = deployments
+        this.requires = requires || []
+        this.provides = provides || []
+        this.resources = resources || []
+        this.integrations = integrations || []
+        this.deployments = deployments || []
     }
 
-    applyStereotype(manifestFactory, templateFactory) {
-        if (manifestFactory == null) {
-            throw new Error("manifestFactory == null")
-        }
-        if (templateFactory == null) {
-            throw new Error("templateFactory == null")
+    applyStereotype(stereotypeDAO) {
+        if (stereotypeDAO == null) {
+            throw new Error("stereotypeDAO == null")
         }
         return when.try(() => {
-            if (this.stereotype) {
-                const stereotypeId = this.stereotype
-                return when(manifestFactory.fromId(stereotypeId)).then(stereotypeManifest => {
-                    Array.prototype.unshift.apply(this.requires, stereotypeManifest.requires)
-                    Array.prototype.unshift.apply(this.provides, stereotypeManifest.provides)
-                    Array.prototype.unshift.apply(this.resources, stereotypeManifest.resources)
-                    Array.prototype.unshift.apply(this.integrations, stereotypeManifest.integrations)
-                    Array.prototype.unshift.apply(this.deployments, stereotypeManifest.deployments)
-                    return this
-                })
-            }
+            return stereotypeDAO.fromId(this.stereotype)
+        }).then(stereotype => {
+            return stereotype.render(this)
+        }).then(stereotypeManifest => {
+            Array.prototype.unshift.call(this.requires, ...stereotypeManifest.requires)
+            Array.prototype.unshift.call(this.provides, ...stereotypeManifest.provides)
+            Array.prototype.unshift.call(this.resources, ...stereotypeManifest.resources || [])
+            Array.prototype.unshift.call(this.integrations, ...stereotypeManifest.integrations)
+            Array.prototype.unshift.call(this.deployments, ...stereotypeManifest.deployments)
+            this.stereotype = undefined
+            return this
         })
     }
 
-
 }
 
-class ManifestFactory {
+class ManifestDAO {
 
     constructor(dirpaths) {
         this.dirpaths = dirpaths
@@ -136,11 +80,9 @@ class ManifestFactory {
     }
 
     fromJsonDoc(doc) {
-        const ajv = new Ajv()
-        const validate = ajv.compile(MANIFEST_V1_SCHEMA)
-        const valid = validate(doc)
+        const valid = validateManifest(doc)
         if (!valid) {
-            raise("Invalid manifest format: %j", ajv.errors)
+            raise("Invalid manifest format: %j", validateManifest.errors)
         }
         if (doc.version != 1) {
             raise("Invalid version: given %d, supported %d", doc.version, 1)
@@ -155,7 +97,27 @@ class ManifestFactory {
             doc.manifest.integrations,
             doc.manifest.deployments)
     }
+
+   toYaml(manifest) {
+        try {
+            const doc = yaml.safeDump(manifest, { skipInvalid: true })
+            return doc
+        }
+        catch (e) {
+            winston.error("Failed to convert manifest to YAML.", e)
+            return null
+        }
+    }
+
+    toYamlFile(manifest, filepath) {
+        const doc = this.toYaml(manifest)
+        if (doc == null) {
+            return null
+        }
+        return fs.writeFile(filepath, doc)
+    }
+
 }
 
 module.exports.ManifestV1 = ManifestV1
-module.exports.ManifestFactory = ManifestFactory
+module.exports.ManifestDAO = ManifestDAO
