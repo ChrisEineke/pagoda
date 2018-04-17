@@ -7,14 +7,6 @@ const when = require("when")
 const yaml = require("js-yaml")
 
 
-const ajv = new Ajv()
-const engine = Liquid();
-
-function raise(fmt, ...args) {
-    const msg = util.format(fmt, ...args)
-    throw new Error(msg)
-}
-
 const TEMPLATE_V1_SCHEMA = {
     "type": "object",
     "properties": {
@@ -37,6 +29,14 @@ const TEMPLATE_V1_SCHEMA = {
             },
         },
     },
+}
+
+const ajv = new Ajv()
+const engine = Liquid();
+
+function raise(fmt, ...args) {
+    const msg = util.format(fmt, ...args)
+    throw new Error(msg)
 }
 
 class TemplateV1 {

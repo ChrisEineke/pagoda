@@ -1,0 +1,14 @@
+version: 1
+manifest:
+  id: platypus-go-microservice
+  requires:
+  provides:
+    - id: {{ id }}-http
+      port: 80
+    - id: {{ id }}-metrics
+      port: 9300
+  resources:
+    - {{ id }}-repo
+  integrations:
+  deployments:
+    - zenreach-shippable-with-elb

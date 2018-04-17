@@ -5,11 +5,14 @@ const fs = require("fs-extra")
 const path = require("path")
 const tmp = require("tmp")
 const when = require("when")
+const winston = require("winston")
 
 const Pagoda = require("../src")
 
 
 tmp.setGracefulCleanup()
+winston.add(winston.transports.File, { filename: "pagoda.log" })
+winston.remove(winston.transports.Console)
 
 const commandOptions = cli([
     { name: "command", type: String, defaultOption: true },
@@ -20,12 +23,19 @@ const argv = commandOptions._unknown || []
 
 const options = cli([
     { name: "manifest", type: String, defaultOption: true },
-    { name: "outputDir", type: String }
+    { name: "outputDir", type: String },
+    { name: "logLevel", type: String },
 ], { argv })
+
+winston.level = options["logLevel"] || "info"
+
+const outputDir = options["outputDir"] || tmp.dirSync().name
 
 const manifestFilepath = options["manifest"] || "manifest.yaml"
 const manifestFactory = new Pagoda.ManifestFactory([
     path.dirname(path.resolve(process.cwd(), manifestFilepath)),
+    path.resolve(process.cwd(), "stereotypes"),
+    path.resolve(__dirname, "../stereotypes"),
     process.cwd(),
 ])
 const manifest = manifestFactory.fromYamlFile(manifestFilepath)
@@ -35,7 +45,6 @@ const templateFactory = new Pagoda.TemplateFactory([
     path.resolve(__dirname, "../templates"),
     process.cwd(),
 ])
-const outputDir = options["outputDir"] || tmp.dirSync().name
 const command = commandOptions["command"]
 
 function generateTemplates(templates, context, outputDir) {
@@ -46,43 +55,48 @@ function generateTemplates(templates, context, outputDir) {
     })
 }
 
-if (command == "requires" || command == "all") {
-}
+when(manifest.applyStereotype(manifestFactory, templateFactory)).then(manifest => {
+    if (command == "compile-requires" || command == "compile") {
+        /*
+         * Generate dependency checks.
+         */
+    }
 
-if (command == "provides" || command == "all") {
-}
+    if (command == "compile-provides" || command == "compile") {
+    }
 
-if (command == "resources" || command == "all") {
-    when.try(() => {
-        return fs.ensureDir(outputDir)
-    }).then(() => {
-        return when.map(manifest.resources, manifestId => {
-            return manifestFactory.fromId(manifestId).then(manifest => {
-                return when.map(manifest.provides, provide => {
-                    return generateTemplates(templateFactory.fromId(provide.template), {
-                        id: manifest.id,
-                        owner: manifest.owner,
-                    }, outputDir)
+    if (command == "compile-resources" || command == "compile") {
+        when.try(() => {
+            return fs.ensureDir(outputDir)
+        }).then(() => {
+            return when.map(manifest.resources, manifestId => {
+                return manifestFactory.fromId(manifestId).then(manifest => {
+                    return when.map(manifest.provides, provide => {
+                        return generateTemplates(templateFactory.fromId(provide.template), {
+                            id: manifest.id,
+                            owner: manifest.owner,
+                        }, outputDir)
+                    })
                 })
             })
         })
-    })
-}
+    }
 
-if (command == "integrations" || command == "all") {
-}
+    if (command == "compile-integrations" || command == "compile") {
+    }
 
-if (command == "deployments" || command == "all") {
-    when.try(() => {
-        return fs.ensureDir(outputDir)
-    }).then(() => {
-        return when.map(manifest.deployments, deploymentId => {
-            return generateTemplates(templateFactory.fromId(deploymentId), {
-                id: manifest.id,
-                owner: manifest.owner,
-            }, outputDir)
+    if (command == "compile-deployments" || command == "compile") {
+        when.try(() => {
+            return fs.ensureDir(outputDir)
+        }).then(() => {
+            return when.map(manifest.deployments, deploymentId => {
+                return generateTemplates(templateFactory.fromId(deploymentId), {
+                    id: manifest.id,
+                    owner: manifest.owner,
+                }, outputDir)
+            })
         })
-    })
-}
+    }
 
-console.log(outputDir)
+    console.log(outputDir)
+})
