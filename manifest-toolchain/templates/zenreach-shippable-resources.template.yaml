@@ -1,0 +1,138 @@
+version: 1
+template:
+  id: shippable.resources.yaml
+  contents: |
+   resources:
+   ####### Docker options ########
+   - name: {{ id }}-options
+     type: dockerOptions
+     version:
+       portMappings:
+       - ":80"
+       - ":9400"
+       labels:
+         SERVICE_80_NAME: {{ id }}
+         SERVICE_9400_NAME: prometheus-zenreach-exporter
+         SERVICE_9400_TAGS: service={{ id }}
+   
+   ####### Develop container resources ########
+   - name: {{ id }}-options-dev-logs
+     type: dockerOptions
+     version:
+       logConfig:
+         type: awslogs
+         options:
+           awslogs-group: /zd/service/{{ id }}
+           awslogs-region: us-west-2
+   
+   - name: {{ id }}-dev-image
+     type: image
+     flags:
+     - "service: {{ id }}"
+     - "version: dev"
+     integration: ZH-ECR
+     pointer:
+       sourceName: 577004102682.dkr.ecr.us-west-2.amazonaws.com/{{ id }}
+     seed:
+       versionName: dev
+   
+   - name: {{ id }}-dev-elb
+     type: loadBalancer
+     pointer:
+       sourceName: arn:aws:elasticloadbalancing:us-west-2:504740723475:targetgroup/zd-uw2-{{ id }}/30a9cabfb4293477
+       method: application
+   
+   - name: {{ id }}-dev-replicas
+     type: replicas
+     version:
+       count: 1
+   
+   ####### Stag container resources ########
+   - name: {{ id }}-options-stag-logs
+     type: dockerOptions
+     version:
+       logConfig:
+         type: awslogs
+         options:
+           awslogs-group: /zs/service/{{ id }}
+           awslogs-region: us-west-2
+   
+   - name: {{ id }}-stag-image
+     type: image
+     flags:
+     - "service: {{ id }}"
+     - "version: stag"
+     integration: ZH-ECR
+     pointer:
+       sourceName: 577004102682.dkr.ecr.us-west-2.amazonaws.com/{{ id }}
+     seed:
+       versionName: stag
+   
+   - name: {{ id }}-stag-elb
+     type: loadBalancer
+     pointer:
+       sourceName: arn:aws:elasticloadbalancing:us-west-2:255794285552:targetgroup/zs-uw2-{{ id }}/8e51fb6be1b51c69
+       method: application
+   
+   - name: {{ id }}-stag-replicas
+     type: replicas
+     version:
+       count: 2
+   
+   ####### Prod container resources ########
+   - name: {{ id }}-options-prod-logs
+     type: dockerOptions
+     version:
+       logConfig:
+         type: awslogs
+         options:
+           awslogs-group: /zp/service/{{ id }}
+           awslogs-region: us-west-2
+   
+   - name: {{ id }}-prod-image
+     type: image
+     flags:
+     - "service: {{ id }}"
+     - "version: prod"
+     integration: ZH-ECR
+     pointer:
+       sourceName: 577004102682.dkr.ecr.us-west-2.amazonaws.com/{{ id }}
+     seed:
+       versionName: prod
+   
+   - name: {{ id }}-prod-elb
+     type: loadBalancer
+     pointer:
+       sourceName: arn:aws:elasticloadbalancing:us-west-2:918769896082:targetgroup/zp-uw2-{{ id }}/7589381c5584c448
+       method: application
+   
+   - name: {{ id }}-prod-replicas
+     type: replicas
+     version:
+       count: 2
+   
+   ####### Demo container resources ########
+   - name: {{ id }}-options-demos-prime-logs
+     type: dockerOptions
+     version:
+       logConfig:
+         type: awslogs
+         options:
+           awslogs-group: /zo/service/{{ id }}
+           awslogs-region: us-west-2
+   
+   - name: {{ id }}-demos-prime-image
+     type: image
+     flags:
+     - "service: {{ id }}"
+     - "version: demos"
+     integration: ZH-ECR
+     pointer:
+       sourceName: 577004102682.dkr.ecr.us-west-2.amazonaws.com/{{ id }}
+     seed:
+       versionName: demos
+   
+   # TODO: {{ id }}-prime-elb
+   
+   - name: {{ id }}-demos-prime-replicas
+

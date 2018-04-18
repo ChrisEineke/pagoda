@@ -6,6 +6,7 @@ const path = require("path")
 const raise = require("./raiseFn")
 const renderTemplate = require("./render-template")
 const util = require("util")
+const walkAsync = require("./walk-async")
 const when = require("when")
 const winston = require("winston")
 const yaml = require("js-yaml")
@@ -17,7 +18,7 @@ const validateStereotype = ajv.compile(schema)
 
 class StereotypeV1 {
 
-    constructor(id, owner, requires, provides, resources, integrations, deployments) {
+    constructor(id, owner, requires, provides, resources, integrations, deployments, templates) {
         this.id = id
         this.owner = owner
         this.requires = requires || []
@@ -25,48 +26,63 @@ class StereotypeV1 {
         this.resources = resources || []
         this.integrations = integrations || []
         this.deployments = deployments || []
+        this.templates = templates || []
     }
 
     render(context) {
-        const requires = []
-        const provides = []
-        const resources = []
-        const integrations = []
-        const deployments = []
+        var requires
+        var provides
+        var resources
+        var integrations
+        var deployments
+        var templates
         return when.try(() => {
-            return when.map(this.requires, require => {
-                return renderTemplate(require, context).then(renderedRequire => {
-                    requires.push(renderedRequire)
-                })
+            return walkAsync(this.requires, (k, v) => {
+                return when.all([
+                    renderTemplate(k, context),
+                    renderTemplate(v, context) ]).spread((k, v) => [ k, v ])
+            }).then(rendered => {
+                requires = rendered
             })
         }).then(() => {
-            return when.map(this.provides, provide => {
-                const renderedProvide = {}
-                return when.map(Object.keys(provide), key => {
-                    return renderTemplate(provide[key], context).then(renderedProvideValue => {
-                        renderedProvide[key] = renderedProvideValue
-                    })
-                }).then(() => {
-                    provides.push(renderedProvide)
-                })
+            return walkAsync(this.provides, (k, v) => {
+                return when.all([
+                    renderTemplate(k, context),
+                    renderTemplate(v, context) ]).spread((k, v) => [ k, v ])
+            }).then(rendered => {
+                provides = rendered
             })
         }).then(() => {
-            return when.map(this.resources, resource => {
-                return renderTemplate(resource, context).then(renderedResource => {
-                    resources.push(renderedResource)
-                })
+            return walkAsync(this.resources, (k, v) => {
+                return when.all([
+                    renderTemplate(k, context),
+                    renderTemplate(v, context) ]).spread((k, v) => [ k, v ])
+            }).then(rendered => {
+                resources = rendered
             })
         }).then(() => {
-            return when.map(this.integrations, integration => {
-                return renderTemplate(integration, context).then(renderedIntegration => {
-                    integrations.push(renderedIntegration)
-                })
+            return walkAsync(this.integrations, (k, v) => {
+                return when.all([
+                    renderTemplate(k, context),
+                    renderTemplate(v, context) ]).spread((k, v) => [ k, v ])
+            }).then(rendered => {
+                integrations = rendered
             })
         }).then(() => {
-            return when.map(this.deployments, deployment => {
-                return renderTemplate(deployment, context).then(renderedDeployment => {
-                    deployments.push(renderedDeployment)
-                })
+            return walkAsync(this.deployments, (k, v) => {
+                return when.all([
+                    renderTemplate(k, context),
+                    renderTemplate(v, context) ]).spread((k, v) => [ k, v ])
+            }).then(rendered => {
+                deployments = rendered
+            })
+        }).then(() => {
+            return walkAsync(this.templates, (k, v) => {
+                return when.all([
+                    renderTemplate(k, context),
+                    renderTemplate(v, context) ]).spread((k, v) => [ k, v ])
+            }).then(rendered => {
+                templates = rendered
             })
         }).then(() => {
             return new ManifestV1(
@@ -77,7 +93,8 @@ class StereotypeV1 {
                 provides,
                 resources,
                 integrations,
-                deployments)
+                deployments,
+                templates)
         })
     }
 
@@ -130,7 +147,8 @@ class StereotypeDAO {
             doc.stereotype.provides,
             doc.stereotype.resources,
             doc.stereotype.integrations,
-            doc.stereotype.deployments)
+            doc.stereotype.deployments,
+            doc.stereotype.templates)
     }
 }
 

@@ -15,7 +15,7 @@ const validateManifest = ajv.compile(schema)
 
 class ManifestV1 {
 
-    constructor(id, owner, stereotype, requires, provides, resources, integrations, deployments) {
+    constructor(id, owner, stereotype, requires, provides, resources, integrations, deployments, templates) {
         this.id = id
         this.owner = owner
         this.stereotype = stereotype
@@ -24,25 +24,123 @@ class ManifestV1 {
         this.resources = resources || []
         this.integrations = integrations || []
         this.deployments = deployments || []
+        this.templates = templates || []
     }
 
-    applyStereotype(stereotypeDAO) {
-        if (stereotypeDAO == null) {
-            throw new Error("stereotypeDAO == null")
+    expand(args) {
+        if (!lo.isObject(args)) {
+            throw new Error("args is not an object: " + args)
         }
         return when.try(() => {
-            return stereotypeDAO.fromId(this.stereotype)
+            return this.applyStereotype(args)
+        }).then(() => {
+            return this.expandRequires(args)
+        }).then(() => {
+            return this.expandProvides(args)
+        }).then(() => {
+            return this.expandResources(args)
+        }).then(() => {
+            return this.expandIntegrations(args)
+        }).then(() => {
+            return this.expandDeployments(args)
+        }).then(() => {
+            return this.expandTemplates(args)
+        }).then(() => {
+            return this
+        })
+    }
+
+    applyStereotype(args) {
+        if (!this.stereotype) {
+            return this
+        }
+        return when.try(() => {
+            return args.stereotypeDAO.fromId(this.stereotype)
         }).then(stereotype => {
             return stereotype.render(this)
         }).then(stereotypeManifest => {
             Array.prototype.unshift.call(this.requires, ...stereotypeManifest.requires)
             Array.prototype.unshift.call(this.provides, ...stereotypeManifest.provides)
-            Array.prototype.unshift.call(this.resources, ...stereotypeManifest.resources || [])
+            Array.prototype.unshift.call(this.resources, ...stereotypeManifest.resources)
             Array.prototype.unshift.call(this.integrations, ...stereotypeManifest.integrations)
             Array.prototype.unshift.call(this.deployments, ...stereotypeManifest.deployments)
+            Array.prototype.unshift.call(this.templates, ...stereotypeManifest.templates)
             this.stereotype = undefined
             return this
         })
+    }
+
+    expandRequires(args) {
+        return this
+    }
+
+    expandProvides(args) {
+        return this
+    }
+
+    expandResources(args) {
+        const expandedResources = {}
+        return when.map(this.resources, resourceId => {
+            return args.manifestDAO.fromId(resourceId).then(resourceManifest => {
+                return resourceManifest.expand(args)
+            }).then(resourceManifest => {
+                expandedResources[resourceId] = resourceManifest
+            })
+        }).then(() => {
+            this.resources = expandedResources
+            return this
+        })
+    }
+
+    expandIntegrations(args) {
+        const expandedIntegrations = {}
+        return when.map(this.integrations, integrationId => {
+            return args.manifestDAO.fromId(integrationId).then(integrationManifest => {
+                return integrationManifest.expand(args)
+            }).then(integrationManifest => {
+                expandedIntegrations[integrationId] = integrationManifest
+            })
+        }).then(() => {
+            this.integrations = expandedIntegrations
+            return this
+        })
+    }
+
+    expandDeployments(args) {
+        const expandedDeployments = {}
+        return when.map(this.deployments, deploymentId => {
+            return args.manifestDAO.fromId(deploymentId).then(deploymentManifest => {
+                return deploymentManifest.expand(args)
+            }).then(deploymentManifest => {
+                expandedDeployments[deploymentId] = deploymentManifest
+            })
+        }).then(() => {
+            this.deployments = expandedDeployments
+            return this
+        })
+    }
+
+    expandTemplates(args) {
+        const expandedTemplates = {}
+        return when.map(this.templates, templateId => {
+            return args.templateDAO.fromId(templateId).then(templates => {
+                return when.map(templates, template => {
+                    return template.generate(Object.assign({}, args.context)).then(res => {
+                        expandedTemplates[res.id] = res.contents
+                    })
+                })
+            })
+        }).then(() => {
+            this.templates = expandedTemplates
+            return this
+        })
+    }
+
+    collectTemplates() {
+        return Object.assign({}, this.templates,
+            ...lo.invokeMap(this.resources, "collectTemplates"),
+            ...lo.invokeMap(this.integrations, "collectTemplates"),
+            ...lo.invokeMap(this.deployments, "collectTemplates"))
     }
 
 }
@@ -95,13 +193,13 @@ class ManifestDAO {
             doc.manifest.provides,
             doc.manifest.resources,
             doc.manifest.integrations,
-            doc.manifest.deployments)
+            doc.manifest.deployments,
+            doc.manifest.templates)
     }
 
    toYaml(manifest) {
         try {
-            const doc = yaml.safeDump(manifest, { skipInvalid: true })
-            return doc
+            return yaml.safeDump(manifest, { skipInvalid: true })
         }
         catch (e) {
             winston.error("Failed to convert manifest to YAML.", e)

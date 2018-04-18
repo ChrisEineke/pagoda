@@ -4,7 +4,9 @@ const cli = require("command-line-args")
 const fs = require("fs-extra")
 const path = require("path")
 const tmp = require("tmp")
+// require("when/monitor/console")
 const when = require("when")
+const whenKeys = require("when/keys")
 const winston = require("winston")
 
 const Pagoda = require("../src")
@@ -52,68 +54,34 @@ const stereotypeDAO = new Pagoda.StereotypeDAO([
 ])
 const command = commandOptions["command"]
 
-function generateTemplates(templates, context, outputDir) {
-    return when.map(templates, template => {
-        return template.generate(context).then(res => {
-            return fs.writeFile(path.join(outputDir, res.id), res.contents)
-        })
-    })
-}
-
-when(manifestDAO.fromYamlFile(manifestFilepath)).then(manifest => {
-    return manifest.applyStereotype(stereotypeDAO)
+return when.try(() => {
+    return manifestDAO.fromYamlFile(manifestFilepath)
 }).then(manifest => {
-    if (command == "show") {
-        console.log(manifestDAO.toYaml(manifest))
-    }
-
-    if (command == "compile") {
-        when.try(() => {
+    return manifest.expand({
+        stereotypeDAO: stereotypeDAO,
+        manifestDAO: manifestDAO,
+        templateDAO: templateDAO,
+        context: manifest,
+    })
+}).then(manifest => {
+    switch (command) {
+    case "show":
+        return when.try(() => {
+            console.log(manifestDAO.toYaml(manifest))
+        })
+    case "compile":
+        return when.try(() => {
             return fs.ensureDir(outputDir)
         }).then(() => {
             return manifestDAO.toYamlFile(manifest, path.join(outputDir, 'manifest.yaml'))
-        })
-    }
-
-    if (command == "compile-requires" || command == "compile") {
-        /*
-         * Generate dependency checks.
-         */
-    }
-
-    if (command == "compile-provides" || command == "compile") {
-    }
-
-    if (command == "compile-resources" || command == "compile") {
-        when.try(() => {
-            return fs.ensureDir(outputDir)
         }).then(() => {
-            return when.map(manifest.resources, manifestId => {
-                return manifestDAO.fromId(manifestId).then(manifest => {
-                    return when.map(manifest.provides, provide => {
-                        return generateTemplates(templateDAO.fromId(provide.template), {
-                            id: manifest.id,
-                            owner: manifest.owner,
-                        }, outputDir)
-                    })
-                })
+            const templates = manifest.collectTemplates()
+            return whenKeys.map(templates, (val, key) => {
+                return fs.writeFile(path.join(outputDir, key), val)
             })
         })
     }
-
-    if (command == "compile-integrations" || command == "compile") {
-    }
-
-    if (command == "compile-deployments" || command == "compile") {
-        when.try(() => {
-            return fs.ensureDir(outputDir)
-        }).then(() => {
-            return when.map(manifest.deployments, deploymentId => {
-                return generateTemplates(templateDAO.fromId(deploymentId), {
-                    id: manifest.id,
-                    owner: manifest.owner,
-                }, outputDir)
-            })
-        })
-    }
+}).catch(e => {
+    winston.error(e)
+    console.error(e)
 })

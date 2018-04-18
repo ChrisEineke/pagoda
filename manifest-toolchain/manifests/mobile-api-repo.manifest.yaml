@@ -2,6 +2,5 @@ version: 1
 manifest:
   id: mobile-api-repo
   owner: mobile
-  provides:
-    - id: mobile-api-repo
-      template: zenreach-container-repo
+  templates:
+    - zenreach-container-repo

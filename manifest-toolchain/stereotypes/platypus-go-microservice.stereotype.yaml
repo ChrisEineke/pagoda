@@ -1,14 +1,11 @@
 version: 1
 stereotype:
   id: platypus-go-microservice
-  requires:
   provides:
-    - id: "{{ id }}-http"
-      port: 80
-    - id: "{{ id }}-metrics"
-      port: 9300
+    - endpoints:
+        '{{ id }}-http': 80
+        '{{ id }}-metrics': 9400
   resources:
-    - "{{ id }}-repo"
-  integrations:
+    - '{{ id }}-repo'
   deployments:
     - zenreach-shippable-with-elb

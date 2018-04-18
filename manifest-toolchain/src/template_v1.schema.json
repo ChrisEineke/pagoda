@@ -1,10 +1,12 @@
 {
     "type": "object",
     "properties": {
-        "version": { "$ref": "#/definitions/version" },
-        "template": { "$ref": "#/definitions/template" },
-        "templates": { "$ref": "#/definitions/templates" }
+        "version": { "$ref": "#/definitions/version" }
     },
+    "oneOf": [
+        { "$ref": "#/definitions/templates" },
+        { "$ref": "#/definitions/template" }
+    ],
     "definitions": {
         "version": { "type": "integer" },
         "id": { "type": "string" },

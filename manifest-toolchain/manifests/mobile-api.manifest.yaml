@@ -6,12 +6,12 @@ manifest:
   requires:
     - platform-mongodb
     - platform-cassandra
-    - mobile-splitio-secret
-    - mobile-onesignal-secret
   provides:
   resources:
+    - mobile-splitio-secret
+    - mobile-onesignal-secret
     - mobile-api-redis
     - mobile-api-s3
   integrations:
-    - mobile-slack-integration
   deployments:
+  templates:

@@ -15,7 +15,8 @@
                 "provides":     { "$ref": "#/definitions/provides" },
                 "resources":    { "$ref": "#/definitions/resources" },
                 "integrations": { "$ref": "#/definitions/integrations" },
-                "deployments":  { "$ref": "#/definitions/deployments" }
+                "deployments":  { "$ref": "#/definitions/deployments" },
+                "templates":    { "$ref": "#/definitions/templates" }
             }
         },
         "id": { "type": "string" },
@@ -34,9 +35,6 @@
                     "type": "object",
                     "properties": {
                         "id": { "$ref": "#/definitions/id" }
-                    },
-                    "patternProperties": {
-                        "[a-z0-9_\\-]*": { "type": [ "string", "number" ] }
                     }
                 }
             }, { "type": "null" } ]
@@ -54,6 +52,12 @@
             }, { "type": "null" } ]
         },
         "deployments": {
+            "oneOf": [ {
+                "type": "array",
+                "items": { "$ref": "#/definitions/id" }
+            }, { "type": "null" } ]
+        },
+        "templates": {
             "oneOf": [ {
                 "type": "array",
                 "items": { "$ref": "#/definitions/id" }

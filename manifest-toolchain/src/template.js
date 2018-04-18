@@ -64,7 +64,7 @@ class TemplateDAO {
     fromJsonDoc(doc) {
         const valid = validateTemplate(doc)
         if (!valid) {
-            raise("Invalid template format: %j", ajv.errors)
+            raise("Invalid template format: %j", validateTemplate.errors)
         }
         if (doc.version != 1) {
             raise("Invalid version: given %d, supported %d", doc.version, 1)

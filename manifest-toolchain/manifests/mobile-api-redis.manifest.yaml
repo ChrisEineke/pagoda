@@ -2,6 +2,5 @@ version: 1
 manifest:
   id: mobile-redis
   owner: mobile
-  provides:
-    - id: mobile-redis
-      template: zenreach-redis-medium
+  templates:
+    - zenreach-redis-medium

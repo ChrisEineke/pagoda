@@ -2,6 +2,5 @@ version: 1
 manifest:
   id: mobile-slack-integration
   owner: mobile
-  provides:
-    - id: mobile-slack-integration
-      template: zenreach-slack
+  templates:
+    - zenreach-slack

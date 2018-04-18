@@ -2,6 +2,5 @@ version: 1
 manifest:
   id: mobile-api-s3
   owner: mobile
-  provides:
-    - id: mobile-api-s3
-      template: zenreach-aws-s3-bucket
+  templates:
+    - zenreach-aws-s3-bucket
