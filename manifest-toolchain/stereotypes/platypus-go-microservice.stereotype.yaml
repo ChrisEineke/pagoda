@@ -1,7 +1,7 @@
 version: 1
 stereotype:
   id: platypus-go-microservice
-  provides:
+  defines:
     - endpoints:
         '{{ id }}-http': 80
         '{{ id }}-metrics': 9400

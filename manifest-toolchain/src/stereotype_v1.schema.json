@@ -11,7 +11,7 @@
                 "id":           { "$ref": "#/definitions/id" },
                 "owner":        { "$ref": "#/definitions/owner" },
                 "requires":     { "$ref": "#/definitions/requires" },
-                "provides":     { "$ref": "#/definitions/provides" },
+                "defines":      { "$ref": "#/definitions/defines" },
                 "resources":    { "$ref": "#/definitions/resources" },
                 "integrations": { "$ref": "#/definitions/integrations" },
                 "deployments":  { "$ref": "#/definitions/deployments" },
@@ -26,7 +26,7 @@
                 "items": { "$ref": "#/definitions/id" }
             }, { "type": "null" } ]
         },
-        "provides": {
+        "defines": {
             "oneOf": [ {
                 "type": "array",
                 "items": {

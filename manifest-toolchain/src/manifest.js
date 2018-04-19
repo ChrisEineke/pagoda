@@ -15,12 +15,12 @@ const validateManifest = ajv.compile(schema)
 
 class ManifestV1 {
 
-    constructor(id, owner, stereotype, requires, provides, resources, integrations, deployments, templates) {
+    constructor(id, owner, stereotype, requires, defines, resources, integrations, deployments, templates) {
         this.id = id
         this.owner = owner
         this.stereotype = stereotype
         this.requires = requires || []
-        this.provides = provides || []
+        this.defines = defines || []
         this.resources = resources || []
         this.integrations = integrations || []
         this.deployments = deployments || []
@@ -36,7 +36,7 @@ class ManifestV1 {
         }).then(() => {
             return this.expandRequires(args)
         }).then(() => {
-            return this.expandProvides(args)
+            return this.expandDefines(args)
         }).then(() => {
             return this.expandResources(args)
         }).then(() => {
@@ -60,7 +60,7 @@ class ManifestV1 {
             return stereotype.render(this)
         }).then(stereotypeManifest => {
             Array.prototype.unshift.call(this.requires, ...stereotypeManifest.requires)
-            Array.prototype.unshift.call(this.provides, ...stereotypeManifest.provides)
+            Array.prototype.unshift.call(this.defines, ...stereotypeManifest.defines)
             Array.prototype.unshift.call(this.resources, ...stereotypeManifest.resources)
             Array.prototype.unshift.call(this.integrations, ...stereotypeManifest.integrations)
             Array.prototype.unshift.call(this.deployments, ...stereotypeManifest.deployments)
@@ -74,7 +74,7 @@ class ManifestV1 {
         return this
     }
 
-    expandProvides(args) {
+    expandDefines(args) {
         return this
     }
 
@@ -190,7 +190,7 @@ class ManifestDAO {
             doc.manifest.owner,
             doc.manifest.stereotype,
             doc.manifest.requires,
-            doc.manifest.provides,
+            doc.manifest.defines,
             doc.manifest.resources,
             doc.manifest.integrations,
             doc.manifest.deployments,

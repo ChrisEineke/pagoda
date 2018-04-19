@@ -6,7 +6,7 @@ manifest:
   requires:
     - platform-mongodb
     - platform-cassandra
-  provides:
+  defines:
   resources:
     - mobile-splitio-secret
     - mobile-onesignal-secret

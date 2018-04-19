@@ -18,11 +18,11 @@ const validateStereotype = ajv.compile(schema)
 
 class StereotypeV1 {
 
-    constructor(id, owner, requires, provides, resources, integrations, deployments, templates) {
+    constructor(id, owner, requires, defines, resources, integrations, deployments, templates) {
         this.id = id
         this.owner = owner
         this.requires = requires || []
-        this.provides = provides || []
+        this.defines = defines || []
         this.resources = resources || []
         this.integrations = integrations || []
         this.deployments = deployments || []
@@ -31,7 +31,7 @@ class StereotypeV1 {
 
     render(context) {
         var requires
-        var provides
+        var defines
         var resources
         var integrations
         var deployments
@@ -45,12 +45,12 @@ class StereotypeV1 {
                 requires = rendered
             })
         }).then(() => {
-            return walkAsync(this.provides, (k, v) => {
+            return walkAsync(this.defines, (k, v) => {
                 return when.all([
                     renderTemplate(k, context),
                     renderTemplate(v, context) ]).spread((k, v) => [ k, v ])
             }).then(rendered => {
-                provides = rendered
+                defines = rendered
             })
         }).then(() => {
             return walkAsync(this.resources, (k, v) => {
@@ -90,7 +90,7 @@ class StereotypeV1 {
                 this.owner,
                 null,
                 requires,
-                provides,
+                defines,
                 resources,
                 integrations,
                 deployments,
@@ -144,7 +144,7 @@ class StereotypeDAO {
             doc.stereotype.id,
             doc.stereotype.owner,
             doc.stereotype.requires,
-            doc.stereotype.provides,
+            doc.stereotype.defines,
             doc.stereotype.resources,
             doc.stereotype.integrations,
             doc.stereotype.deployments,
