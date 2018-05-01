@@ -85,7 +85,7 @@ class StereotypeDAO {
         const race = await Promise.all(competitors.map(competitor => {
             return this.fromYamlFile(competitor)
         }))
-        const winningPaths = race.filter(x => !!x)
+        const winningPaths = lo.compact(race)
         if (winningPaths.length === 0) {
             winston.error("Failed to find stereotype file for %s.", id)
             throw new Error(`Stereotype not found: ${id}`)

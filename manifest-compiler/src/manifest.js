@@ -163,7 +163,7 @@ class ManifestDAO {
         const race = await Promise.all(competitors.map(competitor => {
             return this.fromYamlFile(competitor)
         }))
-        const winningPaths = race.filter(x => !!x)
+        const winningPaths = lo.compact(race)
         if (winningPaths.length === 0) {
             winston.error("Failed to find manifest file for %s.", id)
             throw new Error(`Manifest not found: ${id}`)
