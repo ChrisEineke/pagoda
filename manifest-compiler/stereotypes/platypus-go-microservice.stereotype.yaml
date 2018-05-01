@@ -2,9 +2,13 @@ version: 1
 stereotype:
   id: platypus-go-microservice
   defines:
-    - endpoints:
-        '{{ id }}-http': 80
-        '{{ id }}-metrics': 9400
+    service-port-mapping:
+      'http': 80
+      'http-metrics': 9400
+    port-service-mapping:
+      80: 'http'
+      9400: 'http-metrics'
+    load-balanced-ports: [ 80 ]
   resources:
     - id: '{{ id }}-repo'
       templates:

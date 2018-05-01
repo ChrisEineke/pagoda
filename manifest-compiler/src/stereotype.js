@@ -21,7 +21,7 @@ class StereotypeV1 {
         this.id = id
         this.owner = owner
         this.requires = requires || []
-        this.defines = defines || []
+        this.defines = defines || {}
         this.resources = resources || []
         this.integrations = integrations || []
         this.deployments = deployments || []
@@ -29,10 +29,13 @@ class StereotypeV1 {
     }
 
     async render(context) {
-        const requires = await walkAsync(this.requires, (k, v) => {
+        const defines = await walkAsync(this.defines, (k, v) => {
             return Promise.all([renderTemplate(k, context), renderTemplate(v, context) ])
         })
-        const defines = await walkAsync(this.defines, (k, v) => {
+        Object.assign(context, defines)
+        winston.debug("Render context for stereotype %s in manifest %s: %j", this.id, context.id, context)
+
+        const requires = await walkAsync(this.requires, (k, v) => {
             return Promise.all([renderTemplate(k, context), renderTemplate(v, context) ])
         })
         const resources = await walkAsync(this.resources, (k, v) => {

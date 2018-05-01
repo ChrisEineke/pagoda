@@ -3,6 +3,7 @@ const fs = require("fs-extra")
 const lo = require("lodash")
 const path = require("path")
 const util = require("util")
+const walkAsync = require("./walk-async")
 const winston = require("winston")
 const yaml = require("js-yaml")
 const raise = require("./raiseFn")
@@ -19,7 +20,7 @@ class ManifestV1 {
         this.owner = owner
         this.stereotype = stereotype
         this.requires = requires || []
-        this.defines = defines || []
+        this.defines = defines || {}
         this.resources = resources || []
         this.integrations = integrations || []
         this.deployments = deployments || []
@@ -47,9 +48,15 @@ class ManifestV1 {
         }
         winston.debug("Applying stereotype %s...", this.stereotype)
         const stereotype = await args.stereotypeDAO.fromId(this.stereotype)
-        const stereotypeManifest = await stereotype.render(this)
+        const renderContext = {
+            id: args.context.id,
+            owner: args.context.owner,
+            ...this.defines,
+            ...args.context.defines
+        }
+        const stereotypeManifest = await stereotype.render(renderContext)
         Array.prototype.unshift.call(this.requires, ...stereotypeManifest.requires)
-        Array.prototype.unshift.call(this.defines, ...stereotypeManifest.defines)
+        Object.assign(this.defines, stereotypeManifest.defines)
         Array.prototype.unshift.call(this.resources, ...stereotypeManifest.resources)
         Array.prototype.unshift.call(this.integrations, ...stereotypeManifest.integrations)
         Array.prototype.unshift.call(this.deployments, ...stereotypeManifest.deployments)
@@ -105,7 +112,13 @@ class ManifestV1 {
         for (const templateRef of this.templates) {
             const [ templateId, templates ] = await args.templateDAO.fromRef(templateRef)
             for (const template of templates) {
-                const res = await template.generate(Object.assign({}, args.context))
+                const templateContext = {
+                    id: args.context.id,
+                    owner: args.context.owner,
+                    ...this.defines,
+                    ...args.context.defines
+                }
+                const res = await template.generate(templateContext)
                 expandedTemplates[res.id] = res.contents
             }
         }

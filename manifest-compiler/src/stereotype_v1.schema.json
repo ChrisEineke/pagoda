@@ -28,13 +28,7 @@
         },
         "defines": {
             "oneOf": [ {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "id": { "$ref": "#/definitions/id" }
-                    }
-                }
+                "type": "object"
             }, {
                 "type": "null"
             } ]

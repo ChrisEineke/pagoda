@@ -8,12 +8,12 @@ template:
      type: dockerOptions
      version:
        portMappings:
-       - ":80"
-       - ":9400"
+       - ":{{ service-port-mapping['http'] }}"
+       - ":{{ service-port-mapping['http-metrics'] }}"
        labels:
-         SERVICE_80_NAME: {{ id }}
-         SERVICE_9400_NAME: prometheus-zenreach-exporter
-         SERVICE_9400_TAGS: service={{ id }}
+         SERVICE_{{ service-port-mapping['http'] }}_NAME: {{ id }}
+         SERVICE_{{ service-port-mapping['http-metrics'] }}_NAME: prometheus-zenreach-exporter
+         SERVICE_{{ service-port-mapping['http-metrics'] }}_TAGS: service={{ id }}
    
    ####### Develop container resources ########
    - name: {{ id }}-options-dev-logs

@@ -7,14 +7,15 @@ manifest:
     - platform-mongodb
     - platform-cassandra
   defines:
+    foo: bar
   resources:
     - id: mobile-splitio-secret
       defines:
-        - mobile-splitio-api-key: 'MjYzYTk0NDktZDJmMi00MmU4LWI0M2QtYTQzNWRiZTk2ZGE0'
+        mobile-splitio-api-key: 'MjYzYTk0NDktZDJmMi00MmU4LWI0M2QtYTQzNWRiZTk2ZGE0'
     - id: mobile-onesignal-secret
       defines:
-        - mobile-onesignal-app-id: 'f3de5d4d-ae56-4a87-88cc-cf0ff379c5ed'
-        - mobile-onesignal-app-key: 'MjYzYTk0NDktZDJmMi00MmU4LWI0M2QtYTQzNWRiZTk2ZGE0'
+        mobile-onesignal-app-id: 'f3de5d4d-ae56-4a87-88cc-cf0ff379c5ed'
+        mobile-onesignal-app-key: 'MjYzYTk0NDktZDJmMi00MmU4LWI0M2QtYTQzNWRiZTk2ZGE0'
     - id: mobile-redis
       templates:
         - zenreach-redis-medium

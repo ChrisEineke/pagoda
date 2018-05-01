@@ -130,7 +130,7 @@ templates:
               applyTo:
               - manifest: {{ id }}-dev
                 image: {{ id }}-dev-image
-                port: 80
+                port: {{ service-port-mapping['http'] }}
             - IN: {{ id }}-dev-replicas
             - TASK: managed
               deployMethod: upgrade
@@ -161,7 +161,7 @@ templates:
               applyTo:
               - manifest: {{ id }}-stag
                 image: {{ id }}-stag-image
-                port: 80
+                port: {{ service-port-mapping['http'] }}
             - IN: {{ id }}-stag-replicas
             - TASK: managed
               deployMethod: upgrade
@@ -192,7 +192,6 @@ templates:
               applyTo:
               - manifest: {{ id }}-prod
                 image: {{ id }}-prod-image
-                port: 80
             - IN: {{ id }}-prod-replicas
             - TASK: managed
               deployMethod: upgrade
@@ -230,7 +229,7 @@ templates:
        type: dockerOptions
        version:
          portMappings:
-         - ":8080"
+         - ":{{ service-port-mapping['http'] }}"
          logConfig:
            type: awslogs
            options:
