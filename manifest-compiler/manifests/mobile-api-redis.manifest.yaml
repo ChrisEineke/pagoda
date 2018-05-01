@@ -1,6 +1,0 @@
-version: 1
-manifest:
-  id: mobile-redis
-  owner: mobile
-  templates:
-    - zenreach-redis-medium

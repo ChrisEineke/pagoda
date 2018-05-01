@@ -1,6 +1,0 @@
-version: 1
-manifest:
-  id: mobile-slack-integration
-  owner: mobile
-  templates:
-    - zenreach-slack

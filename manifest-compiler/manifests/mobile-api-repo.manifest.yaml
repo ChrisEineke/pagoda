@@ -1,6 +1,0 @@
-version: 1
-manifest:
-  id: mobile-api-repo
-  owner: mobile
-  templates:
-    - zenreach-container-repo

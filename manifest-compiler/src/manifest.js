@@ -69,8 +69,8 @@ class ManifestV1 {
 
     async _expandResources(args) {
         const expandedResources = {}
-        for (const resourceId of this.resources) {
-            const resourceManifest = await args.manifestDAO.fromId(resourceId)
+        for (const resourceRef of this.resources) {
+            const [ resourceId, resourceManifest ] = await args.manifestDAO.fromRef(resourceRef, 1)
             await resourceManifest.expand(args)
             expandedResources[resourceId] = resourceManifest
         }
@@ -80,8 +80,8 @@ class ManifestV1 {
 
     async _expandIntegrations(args) {
         const expandedIntegrations = {}
-        for (const integrationId of this.integrations) {
-            const integrationManifest = await args.manifestDAO.fromId(integrationId)
+        for (const integrationRef of this.integrations) {
+            const [ integrationId, integrationManifest ] = await args.manifestDAO.fromRef(integrationRef, 1)
             await integrationManifest.expand(args)
             expandedIntegrations[integrationId] = integrationManifest
         }
@@ -91,8 +91,8 @@ class ManifestV1 {
 
     async _expandDeployments(args) {
         const expandedDeployments = {}
-        for (const deploymentId of this.deployments) {
-            const deploymentManifest = await args.manifestDAO.fromId(deploymentId)
+        for (const deploymentRef of this.deployments) {
+            const [ deploymentId, deploymentManifest ] = await args.manifestDAO.fromRef(deploymentRef, 1)
             await deploymentManifest.expand(args)
             expandedDeployments[deploymentId] = deploymentManifest
         }
@@ -102,8 +102,8 @@ class ManifestV1 {
 
     async _expandTemplates(args) {
         const expandedTemplates = {}
-        for (const templateId of this.templates) {
-            const templates = await args.templateDAO.fromId(templateId)
+        for (const templateRef of this.templates) {
+            const [ templateId, templates ] = await args.templateDAO.fromRef(templateRef)
             for (const template of templates) {
                 const res = await template.generate(Object.assign({}, args.context))
                 expandedTemplates[res.id] = res.contents
@@ -127,6 +127,23 @@ class ManifestDAO {
     constructor(dirpaths) {
         this.dirpaths = dirpaths
         this.cache = {}
+    }
+
+    async fromRef(ref, version) {
+        if (lo.isString(ref)) {
+            return [ ref, await this.fromId(ref) ]
+        }
+        else if (lo.isArray(ref)) {
+            return ref.map(ref => {
+                return [ ref.id, this.fromJsonDoc(Object.assign({}, { version }, { manifests: ref })) ]
+            })
+        }
+        else if (lo.isObject(ref)) {
+            return [ ref.id, this.fromJsonDoc(Object.assign({}, { version }, { manifest: ref })) ]
+        }
+        else {
+            throw new Error(`Unsupported manifest reference type: ${typeof ref}`)
+        }
     }
 
     async fromId(id) {

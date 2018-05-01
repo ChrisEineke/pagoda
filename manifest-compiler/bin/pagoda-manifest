@@ -62,7 +62,7 @@ const command = commandOptions["command"];
             context: unexpandedManifest,
         })
         switch (command) {
-        case "show":
+        case "dump":
             console.log(manifestDAO.toYaml(manifest))
             break
         case "compile":

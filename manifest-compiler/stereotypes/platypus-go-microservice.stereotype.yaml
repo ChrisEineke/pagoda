@@ -6,6 +6,8 @@ stereotype:
         '{{ id }}-http': 80
         '{{ id }}-metrics': 9400
   resources:
-    - '{{ id }}-repo'
+    - id: '{{ id }}-repo'
+      templates:
+        - zenreach-container-repo
   deployments:
     - zenreach-shippable-with-elb

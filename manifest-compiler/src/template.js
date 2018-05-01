@@ -1,5 +1,6 @@
 const Ajv = require("ajv")
 const fs = require("fs-extra")
+const lo = require("lodash")
 const path = require("path")
 const raise = require("./raiseFn")
 const renderTemplate = require("./render-template")
@@ -34,6 +35,23 @@ class TemplateDAO {
     constructor(dirpaths) {
         this.dirpaths = dirpaths
         this.cache = {}
+    }
+
+    async fromRef(ref, version) {
+        if (lo.isString(ref)) {
+            return [ ref, await this.fromId(ref) ]
+        }
+        else if (lo.isArray(ref)) {
+            return ref.map(ref => {
+                return [ ref.id, this.fromJsonDoc(Object.assign({}, { version }, { templates: ref })) ]
+            })
+        }
+        else if (lo.isObject(ref)) {
+            return [ [ ref.id, this.fromJsonDoc(Object.assign({}, { version }, { template: ref })) ] ]
+        }
+        else {
+            throw new Error(`Unsupported template reference type: ${typeof ref}`)
+        }
     }
 
     async fromId(id) {

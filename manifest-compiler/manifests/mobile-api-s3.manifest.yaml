@@ -1,6 +1,0 @@
-version: 1
-manifest:
-  id: mobile-api-s3
-  owner: mobile
-  templates:
-    - zenreach-aws-s3-bucket

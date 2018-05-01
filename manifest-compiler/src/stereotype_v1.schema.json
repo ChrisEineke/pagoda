@@ -12,10 +12,10 @@
                 "owner":        { "$ref": "#/definitions/owner" },
                 "requires":     { "$ref": "#/definitions/requires" },
                 "defines":      { "$ref": "#/definitions/defines" },
-                "resources":    { "$ref": "#/definitions/resources" },
-                "integrations": { "$ref": "#/definitions/integrations" },
-                "deployments":  { "$ref": "#/definitions/deployments" },
-                "templates":    { "$ref": "#/definitions/templates" }
+                "resources":    { "$ref": "#/definitions/arrayOfManifestRefs" },
+                "integrations": { "$ref": "#/definitions/arrayOfManifestRefs" },
+                "deployments":  { "$ref": "#/definitions/arrayOfManifestRefs" },
+                "templates":    { "$ref": "#/definitions/arrayOfTemplateRefs" }
             }
         },
         "id": { "type": "string" },
@@ -24,7 +24,7 @@
             "oneOf": [ {
                 "type": "array",
                 "items": { "$ref": "#/definitions/id" }
-            }, { "type": "null" } ]
+            } ]
         },
         "defines": {
             "oneOf": [ {
@@ -35,31 +35,40 @@
                         "id": { "$ref": "#/definitions/id" }
                     }
                 }
-            }, { "type": "null" } ]
+            }, {
+                "type": "null"
+            } ]
         },
-        "resources": {
+        "arrayOfManifestRefs": {
             "oneOf": [ {
                 "type": "array",
-                "items": { "$ref": "#/definitions/id" }
-            }, { "type": "null" } ]
+                "items": {
+                    "anyOf": [ {
+                        "$ref": "#/definitions/id"
+                    }, {
+                        "$ref": "#/definitions/stereotype"
+                    } ]
+                }
+            }, {
+                "type": "null"
+            } ]
         },
-        "integrations": {
+        "arrayOfTemplateRefs": {
             "oneOf": [ {
                 "type": "array",
-                "items": { "$ref": "#/definitions/id" }
-            }, { "type": "null" } ]
-        },
-        "deployments": {
-            "oneOf": [ {
-                "type": "array",
-                "items": { "$ref": "#/definitions/id" }
-            }, { "type": "null" } ]
-        },
-        "templates": {
-            "oneOf": [ {
-                "type": "array",
-                "items": { "$ref": "#/definitions/id" }
-            }, { "type": "null" } ]
+                "items": {
+                    "anyOf": [ {
+                        "$ref": "#/definitions/id"
+                    }, {
+                        "type": "object",
+                        "properties": {
+                            "id": { "$ref": "#/definitions/id" }
+                        }
+                    } ]
+                }
+            }, {
+                "type": "null"
+            } ]
         }
     }
 }
