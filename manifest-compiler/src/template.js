@@ -4,7 +4,7 @@ const path = require("path")
 const raise = require("./raiseFn")
 const renderTemplate = require("./render-template")
 const util = require("util")
-const when = require("when")
+const winston = require("winston")
 const yaml = require("js-yaml")
 
 
@@ -19,13 +19,12 @@ class TemplateV1 {
         this.contents = contents
     }
 
-    generate(context) {
-        return when(renderTemplate(this.contents, context)).then((contents) => {
-            return {
-                id: this.id,
-                contents: contents,
-            }
-        })
+    async generate(context) {
+        const contents = await renderTemplate(this.contents, context)
+        return {
+            id: this.id,
+            contents: contents,
+        }
     }
 
 }
@@ -34,21 +33,35 @@ class TemplateDAO {
 
     constructor(dirpaths) {
         this.dirpaths = dirpaths
+        this.cache = {}
     }
 
-    fromId(id) {
+    async fromId(id) {
+        winston.debug("Checking cache for template %s...", id)
+        if (this.cache[id] !== undefined) {
+            winston.debug("Found template %s in cache.", id)
+            return this.cache[id]
+        }
+        winston.debug("Couldn't find template %s in cache.", id)
+
+        winston.debug("Searching the filsystem for template %s...", id)
         const competitors = this.dirpaths.map(dirpath => {
-            return path.join(dirpath, id + ".template.yaml")
+            const contestant = path.join(dirpath, id + ".template.yaml")
+            winston.debug("Will try %s...", contestant)
+            return contestant
         })
-        return when.map(competitors, competitor => {
+        const race = await Promise.all(competitors.map(competitor => {
             return this.fromYamlFile(competitor)
-        }).then(race => {
-            const winner = race.filter(x => !!x)[0]
-            if (!winner) {
-                raise("Template ID not found: %s", id)
-            }
-            return winner
-        })
+        }))
+        const winningPaths = race.filter(x => !!x)
+        if (winningPaths.length === 0) {
+            winston.error("Failed to find template file for %s.", id)
+            throw new Error(`template not found: ${id}`)
+        }
+        const winner = winningPaths[0]
+        this.cache[id] = winner
+        winston.debug("Added %s to the template cache.", id)
+        return winner
     }
 
     fromYamlFile(filepath) {

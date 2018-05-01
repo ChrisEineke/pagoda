@@ -7,7 +7,6 @@ const raise = require("./raiseFn")
 const renderTemplate = require("./render-template")
 const util = require("util")
 const walkAsync = require("./walk-async")
-const when = require("when")
 const winston = require("winston")
 const yaml = require("js-yaml")
 
@@ -29,73 +28,35 @@ class StereotypeV1 {
         this.templates = templates || []
     }
 
-    render(context) {
-        var requires
-        var defines
-        var resources
-        var integrations
-        var deployments
-        var templates
-        return when.try(() => {
-            return walkAsync(this.requires, (k, v) => {
-                return when.all([
-                    renderTemplate(k, context),
-                    renderTemplate(v, context) ]).spread((k, v) => [ k, v ])
-            }).then(rendered => {
-                requires = rendered
-            })
-        }).then(() => {
-            return walkAsync(this.defines, (k, v) => {
-                return when.all([
-                    renderTemplate(k, context),
-                    renderTemplate(v, context) ]).spread((k, v) => [ k, v ])
-            }).then(rendered => {
-                defines = rendered
-            })
-        }).then(() => {
-            return walkAsync(this.resources, (k, v) => {
-                return when.all([
-                    renderTemplate(k, context),
-                    renderTemplate(v, context) ]).spread((k, v) => [ k, v ])
-            }).then(rendered => {
-                resources = rendered
-            })
-        }).then(() => {
-            return walkAsync(this.integrations, (k, v) => {
-                return when.all([
-                    renderTemplate(k, context),
-                    renderTemplate(v, context) ]).spread((k, v) => [ k, v ])
-            }).then(rendered => {
-                integrations = rendered
-            })
-        }).then(() => {
-            return walkAsync(this.deployments, (k, v) => {
-                return when.all([
-                    renderTemplate(k, context),
-                    renderTemplate(v, context) ]).spread((k, v) => [ k, v ])
-            }).then(rendered => {
-                deployments = rendered
-            })
-        }).then(() => {
-            return walkAsync(this.templates, (k, v) => {
-                return when.all([
-                    renderTemplate(k, context),
-                    renderTemplate(v, context) ]).spread((k, v) => [ k, v ])
-            }).then(rendered => {
-                templates = rendered
-            })
-        }).then(() => {
-            return new ManifestV1(
-                this.id,
-                this.owner,
-                null,
-                requires,
-                defines,
-                resources,
-                integrations,
-                deployments,
-                templates)
+    async render(context) {
+        const requires = await walkAsync(this.requires, (k, v) => {
+            return Promise.all([renderTemplate(k, context), renderTemplate(v, context) ])
         })
+        const defines = await walkAsync(this.defines, (k, v) => {
+            return Promise.all([renderTemplate(k, context), renderTemplate(v, context) ])
+        })
+        const resources = await walkAsync(this.resources, (k, v) => {
+            return Promise.all([renderTemplate(k, context), renderTemplate(v, context) ])
+        })
+        const integrations = await walkAsync(this.integrations, (k, v) => {
+            return Promise.all([renderTemplate(k, context), renderTemplate(v, context) ])
+        })
+        const deployments = await walkAsync(this.deployments, (k, v) => {
+            return Promise.all([renderTemplate(k, context), renderTemplate(v, context) ])
+        })
+        const templates = await walkAsync(this.templates, (k, v) => {
+            return Promise.all([renderTemplate(k, context), renderTemplate(v, context) ])
+        })
+        return new ManifestV1(
+            this.id,
+            this.owner,
+            null,
+            requires,
+            defines,
+            resources,
+            integrations,
+            deployments,
+            templates)
     }
 
 }
@@ -104,22 +65,35 @@ class StereotypeDAO {
 
     constructor(dirpaths) {
         this.dirpaths = dirpaths
+        this.cache = {}
     }
 
-    fromId(id) {
+    async fromId(id) {
+        winston.debug("Checking cache for stereotype %s...", id)
+        if (this.cache[id] !== undefined) {
+            winston.debug("Found stereotype %s in cache.", id)
+            return this.cache[id]
+        }
+        winston.debug("Couldn't find stereotype %s in cache.", id)
+
+        winston.debug("Searching the filsystem for stereotype %s...", id)
         const competitors = this.dirpaths.map(dirpath => {
-            return path.join(dirpath, id + ".stereotype.yaml")
+            const contestant = path.join(dirpath, id + ".stereotype.yaml")
+            winston.debug("Will try %s...", contestant)
+            return contestant
         })
-        winston.debug("Looking for stereotype %s in these paths: %j.", id, competitors)
-        return when.map(competitors, competitor => {
+        const race = await Promise.all(competitors.map(competitor => {
             return this.fromYamlFile(competitor)
-        }).then(race => {
-            const winner = race.filter(x => !!x)[0]
-            if (!winner) {
-                raise("Stereotype ID not found: %s", id)
-            }
-            return winner
-        })
+        }))
+        const winningPaths = race.filter(x => !!x)
+        if (winningPaths.length === 0) {
+            winston.error("Failed to find stereotype file for %s.", id)
+            throw new Error(`Stereotype not found: ${id}`)
+        }
+        const winner = winningPaths[0]
+        this.cache[id] = winner
+        winston.debug("Added %s to the stereotype cache.", id)
+        return winner
     }
 
     fromYamlFile(filepath) {

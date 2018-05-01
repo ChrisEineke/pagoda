@@ -1,3 +1,7 @@
+# Requirements
+
+`node >= v8.11.0`
+
 # Setup
 ```
 npm install

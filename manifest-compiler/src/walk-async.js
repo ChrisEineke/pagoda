@@ -1,37 +1,29 @@
 const lo = require("lodash")
-const when = require("when")
 
-
-function walkAsync(x, fn) {
+async function walkAsync(x, fn) {
     if (lo.isArray(x)) {
         const y = []
-        return when.map(lo.toPairs(x), pair => {
-            return when(walkAsync(pair[1], fn)).then(v => {
-                y[pair[0]] = v
-            })
-        }).then(() => {
-            return y
-        })
+        for (const pair of lo.toPairs(x)) {
+            y[pair[0]] = await walkAsync(pair[1], fn)
+        }
+        return y
     }
     else if (lo.isObject(x)) {
         const y = {}
-        return when.map(lo.toPairs(x), pair => {
+        for (const pair of lo.toPairs(x)) {
             if (lo.isArray(pair[1]) || lo.isObject(pair[1])) {
-                return when(walkAsync(pair[1], fn)).then(v => {
-                    y[pair[0]] = v
-                })
+                y[pair[0]] = await walkAsync(pair[1], fn)
             }
             else {
-                return when(fn(pair[0], pair[1])).then(pair => {
-                    y[pair[0]] = pair[1]
-                })
+                const transformedPair = await fn(pair[0], pair[1])
+                y[transformedPair[0]] = transformedPair[1]
             }
-        }).then(() => {
-            return y
-        })
+        }
+        return y
     }
     else {
-        return when(fn(null, x)).then(pair => pair[1])
+        const pair = await fn(null, x)
+        return pair[1]
     }
 }
 

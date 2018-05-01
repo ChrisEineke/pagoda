@@ -3,7 +3,6 @@ const fs = require("fs-extra")
 const lo = require("lodash")
 const path = require("path")
 const util = require("util")
-const when = require("when")
 const winston = require("winston")
 const yaml = require("js-yaml")
 const raise = require("./raiseFn")
@@ -27,113 +26,91 @@ class ManifestV1 {
         this.templates = templates || []
     }
 
-    expand(args) {
+    async expand(args) {
         if (!lo.isObject(args)) {
             throw new Error("args is not an object: " + args)
         }
-        return when.try(() => {
-            return this.applyStereotype(args)
-        }).then(() => {
-            return this.expandRequires(args)
-        }).then(() => {
-            return this.expandDefines(args)
-        }).then(() => {
-            return this.expandResources(args)
-        }).then(() => {
-            return this.expandIntegrations(args)
-        }).then(() => {
-            return this.expandDeployments(args)
-        }).then(() => {
-            return this.expandTemplates(args)
-        }).then(() => {
-            return this
-        })
+        await this._applyStereotype(args)
+        await this._expandRequires(args)
+        await this._expandDefines(args)
+        await this._expandResources(args)
+        await this._expandIntegrations(args)
+        await this._expandDeployments(args)
+        await this._expandTemplates(args)
+        return this
     }
 
-    applyStereotype(args) {
+    async _applyStereotype(args) {
         if (!this.stereotype) {
+            winston.debug("No stereotype provided.")
             return this
         }
-        return when.try(() => {
-            return args.stereotypeDAO.fromId(this.stereotype)
-        }).then(stereotype => {
-            return stereotype.render(this)
-        }).then(stereotypeManifest => {
-            Array.prototype.unshift.call(this.requires, ...stereotypeManifest.requires)
-            Array.prototype.unshift.call(this.defines, ...stereotypeManifest.defines)
-            Array.prototype.unshift.call(this.resources, ...stereotypeManifest.resources)
-            Array.prototype.unshift.call(this.integrations, ...stereotypeManifest.integrations)
-            Array.prototype.unshift.call(this.deployments, ...stereotypeManifest.deployments)
-            Array.prototype.unshift.call(this.templates, ...stereotypeManifest.templates)
-            this.stereotype = undefined
-            return this
-        })
-    }
-
-    expandRequires(args) {
+        winston.debug("Applying stereotype %s...", this.stereotype)
+        const stereotype = await args.stereotypeDAO.fromId(this.stereotype)
+        const stereotypeManifest = await stereotype.render(this)
+        Array.prototype.unshift.call(this.requires, ...stereotypeManifest.requires)
+        Array.prototype.unshift.call(this.defines, ...stereotypeManifest.defines)
+        Array.prototype.unshift.call(this.resources, ...stereotypeManifest.resources)
+        Array.prototype.unshift.call(this.integrations, ...stereotypeManifest.integrations)
+        Array.prototype.unshift.call(this.deployments, ...stereotypeManifest.deployments)
+        Array.prototype.unshift.call(this.templates, ...stereotypeManifest.templates)
+        winston.debug("Applied stereotype %s.", this.stereotype)
+        this.stereotype = undefined
         return this
     }
 
-    expandDefines(args) {
+    async _expandRequires(args) {
         return this
     }
 
-    expandResources(args) {
+    async _expandDefines(args) {
+        return this
+    }
+
+    async _expandResources(args) {
         const expandedResources = {}
-        return when.map(this.resources, resourceId => {
-            return args.manifestDAO.fromId(resourceId).then(resourceManifest => {
-                return resourceManifest.expand(args)
-            }).then(resourceManifest => {
-                expandedResources[resourceId] = resourceManifest
-            })
-        }).then(() => {
-            this.resources = expandedResources
-            return this
-        })
+        for (const resourceId of this.resources) {
+            const resourceManifest = await args.manifestDAO.fromId(resourceId)
+            await resourceManifest.expand(args)
+            expandedResources[resourceId] = resourceManifest
+        }
+        this.resources = expandedResources
+        return this
     }
 
-    expandIntegrations(args) {
+    async _expandIntegrations(args) {
         const expandedIntegrations = {}
-        return when.map(this.integrations, integrationId => {
-            return args.manifestDAO.fromId(integrationId).then(integrationManifest => {
-                return integrationManifest.expand(args)
-            }).then(integrationManifest => {
-                expandedIntegrations[integrationId] = integrationManifest
-            })
-        }).then(() => {
-            this.integrations = expandedIntegrations
-            return this
-        })
+        for (const integrationId of this.integrations) {
+            const integrationManifest = await args.manifestDAO.fromId(integrationId)
+            await integrationManifest.expand(args)
+            expandedIntegrations[integrationId] = integrationManifest
+        }
+        this.integrations = expandedIntegrations
+        return this
     }
 
-    expandDeployments(args) {
+    async _expandDeployments(args) {
         const expandedDeployments = {}
-        return when.map(this.deployments, deploymentId => {
-            return args.manifestDAO.fromId(deploymentId).then(deploymentManifest => {
-                return deploymentManifest.expand(args)
-            }).then(deploymentManifest => {
-                expandedDeployments[deploymentId] = deploymentManifest
-            })
-        }).then(() => {
-            this.deployments = expandedDeployments
-            return this
-        })
+        for (const deploymentId of this.deployments) {
+            const deploymentManifest = await args.manifestDAO.fromId(deploymentId)
+            await deploymentManifest.expand(args)
+            expandedDeployments[deploymentId] = deploymentManifest
+        }
+        this.deployments = expandedDeployments
+        return this
     }
 
-    expandTemplates(args) {
+    async _expandTemplates(args) {
         const expandedTemplates = {}
-        return when.map(this.templates, templateId => {
-            return args.templateDAO.fromId(templateId).then(templates => {
-                return when.map(templates, template => {
-                    return template.generate(Object.assign({}, args.context)).then(res => {
-                        expandedTemplates[res.id] = res.contents
-                    })
-                })
-            })
-        }).then(() => {
-            this.templates = expandedTemplates
-            return this
-        })
+        for (const templateId of this.templates) {
+            const templates = await args.templateDAO.fromId(templateId)
+            for (const template of templates) {
+                const res = await template.generate(Object.assign({}, args.context))
+                expandedTemplates[res.id] = res.contents
+            }
+        }
+        this.templates = expandedTemplates
+        return this
     }
 
     collectTemplates() {
@@ -149,22 +126,35 @@ class ManifestDAO {
 
     constructor(dirpaths) {
         this.dirpaths = dirpaths
+        this.cache = {}
     }
 
-    fromId(id) {
+    async fromId(id) {
+        winston.debug("Checking cache for manifest %s...", id)
+        if (this.cache[id] !== undefined) {
+            winston.debug("Found manifest %s in cache.", id)
+            return this.cache[id]
+        }
+        winston.debug("Couldn't find manifest %s in cache.", id)
+
+        winston.debug("Searching the filsystem for manifest %s...", id)
         const competitors = this.dirpaths.map(dirpath => {
-            return path.join(dirpath, id + ".manifest.yaml")
+            const contestant = path.join(dirpath, id + ".manifest.yaml")
+            winston.debug("Will try %s...", contestant)
+            return contestant
         })
-        winston.debug("Looking for manifest %s in these paths: %j.", id, competitors)
-        return when.map(competitors, competitor => {
+        const race = await Promise.all(competitors.map(competitor => {
             return this.fromYamlFile(competitor)
-        }).then(race => {
-            const winner = race.filter(x => !!x)[0]
-            if (!winner) {
-                raise("Manifest ID not found: %s", id)
-            }
-            return winner
-        })
+        }))
+        const winningPaths = race.filter(x => !!x)
+        if (winningPaths.length === 0) {
+            winston.error("Failed to find manifest file for %s.", id)
+            throw new Error(`Manifest not found: ${id}`)
+        }
+        const winner = winningPaths[0]
+        this.cache[id] = winner
+        winston.debug("Added %s to the manifest cache.", id)
+        return winner
     }
 
     fromYamlFile(filepath) {

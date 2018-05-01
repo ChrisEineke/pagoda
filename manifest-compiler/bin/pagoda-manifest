@@ -2,11 +2,9 @@
 
 const cli = require("command-line-args")
 const fs = require("fs-extra")
+const lo = require("lodash")
 const path = require("path")
 const tmp = require("tmp")
-// require("when/monitor/console")
-const when = require("when")
-const whenKeys = require("when/keys")
 const winston = require("winston")
 
 const Pagoda = require("../src")
@@ -52,36 +50,33 @@ const stereotypeDAO = new Pagoda.StereotypeDAO([
     path.resolve(__dirname, "../stereotypes"),
     process.cwd(),
 ])
-const command = commandOptions["command"]
+const command = commandOptions["command"];
 
-return when.try(() => {
-    return manifestDAO.fromYamlFile(manifestFilepath)
-}).then(manifest => {
-    return manifest.expand({
-        stereotypeDAO: stereotypeDAO,
-        manifestDAO: manifestDAO,
-        templateDAO: templateDAO,
-        context: manifest,
-    })
-}).then(manifest => {
-    switch (command) {
-    case "show":
-        return when.try(() => {
+(async function main() {
+    try {
+        let unexpandedManifest = await manifestDAO.fromYamlFile(manifestFilepath)
+        let manifest = await unexpandedManifest.expand({
+            stereotypeDAO: stereotypeDAO,
+            manifestDAO: manifestDAO,
+            templateDAO: templateDAO,
+            context: unexpandedManifest,
+        })
+        switch (command) {
+        case "show":
             console.log(manifestDAO.toYaml(manifest))
-        })
-    case "compile":
-        return when.try(() => {
-            return fs.ensureDir(outputDir)
-        }).then(() => {
-            return manifestDAO.toYamlFile(manifest, path.join(outputDir, 'manifest.yaml'))
-        }).then(() => {
-            const templates = manifest.collectTemplates()
-            return whenKeys.map(templates, (val, key) => {
-                return fs.writeFile(path.join(outputDir, key), val)
+            break
+        case "compile":
+            await fs.ensureDir(outputDir)
+            await manifestDAO.toYamlFile(manifest, path.join(outputDir, 'manifest.yaml'))
+            const templates = await manifest.collectTemplates()
+            lo.forEach(templates, async (val, key) => {
+                await fs.writeFile(path.join(outputDir, key), val)
             })
-        })
+            break
+        }
     }
-}).catch(e => {
-    winston.error(e)
-    console.error(e)
-})
+    catch (e) {
+        winston.error(e)
+        console.error(e)
+    }
+})()
