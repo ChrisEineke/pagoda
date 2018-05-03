@@ -74,8 +74,7 @@ function handleManifestDumpCommand(argv) {
             const manifest = await unexpandedManifest.expand({
                 stereotypeDAO: stereotypeDAO,
                 manifestDAO: manifestDAO,
-                templateDAO: templateDAO,
-                context: unexpandedManifest,
+                templateDAO: templateDAO
             })
             console.log(manifestDAO.toYaml(manifest))
         })()
@@ -106,8 +105,7 @@ function handleManifestCompileCommand(argv) {
             const manifest = await unexpandedManifest.expand({
                 stereotypeDAO: stereotypeDAO,
                 manifestDAO: manifestDAO,
-                templateDAO: templateDAO,
-                context: unexpandedManifest,
+                templateDAO: templateDAO
             })
             await fs.ensureDir(outputDir)
             await manifestDAO.toYamlFile(manifest, path.join(outputDir, 'manifest.yaml'))

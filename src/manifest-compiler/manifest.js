@@ -31,6 +31,17 @@ class ManifestV1 {
         if (!lo.isObject(args)) {
             throw new Error("args is not an object: " + args)
         }
+        if (!args.context) {
+            args.context = {
+                id: this.id,
+                owner: this.owner,
+            }
+        }
+        args.context = {
+            ...this.defines,
+            ...args.context,
+        }
+        winston.debug("Expanding manifest %s with the following bindings: %j", this.id, args.context)
         await this._applyStereotype(args)
         await this._expandRequires(args)
         await this._expandDefines(args)
@@ -48,13 +59,7 @@ class ManifestV1 {
         }
         winston.debug("Applying stereotype %s...", this.stereotype)
         const stereotype = await args.stereotypeDAO.fromId(this.stereotype)
-        const renderContext = {
-            id: args.context.id,
-            owner: args.context.owner,
-            ...this.defines,
-            ...args.context.defines
-        }
-        const stereotypeManifest = await stereotype.render(renderContext)
+        const stereotypeManifest = await stereotype.render(args.context)
         Array.prototype.unshift.call(this.requires, ...stereotypeManifest.requires)
         Object.assign(this.defines, stereotypeManifest.defines)
         Array.prototype.unshift.call(this.resources, ...stereotypeManifest.resources)
@@ -110,15 +115,9 @@ class ManifestV1 {
     async _expandTemplates(args) {
         const expandedTemplates = {}
         for (const templateRef of this.templates) {
-            const [ templateId, templates ] = await args.templateDAO.fromRef(templateRef)
+            const [ templateId, templates ] = await args.templateDAO.fromRef(templateRef, 1)
             for (const template of templates) {
-                const templateContext = {
-                    id: args.context.id,
-                    owner: args.context.owner,
-                    ...this.defines,
-                    ...args.context.defines
-                }
-                const res = await template.generate(templateContext)
+                const res = await template.generate(args.context)
                 expandedTemplates[res.id] = res.contents
             }
         }
@@ -209,12 +208,12 @@ class ManifestDAO {
             doc.manifest.id,
             doc.manifest.owner,
             doc.manifest.stereotype,
-            doc.manifest.requires,
+            doc.manifest.require ? [ doc.manifest.require ] : doc.manifest.requires,
             doc.manifest.defines,
-            doc.manifest.resources,
-            doc.manifest.integrations,
-            doc.manifest.deployments,
-            doc.manifest.templates)
+            doc.manifest.resource ? [ doc.manifest.resource ] : doc.manifest.resources,
+            doc.manifest.integration ? [ doc.manifest.integration ] : doc.manifest.integrations,
+            doc.manifest.deployment ? [ doc.manifest.integration ] : doc.manifest.deployments,
+            doc.manifest.template ? [ doc.manifest.template ] : doc.manifest.templates)
     }
 
    toYaml(manifest) {

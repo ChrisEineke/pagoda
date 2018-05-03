@@ -43,11 +43,11 @@ class TemplateDAO {
         }
         else if (lo.isArray(ref)) {
             return ref.map(ref => {
-                return [ ref.id, this.fromJsonDoc(Object.assign({}, { version }, { templates: ref })) ]
+                return [ ref.id, this.fromJsonDoc(Object.assign({}, { version, templates: ref })) ]
             })
         }
         else if (lo.isObject(ref)) {
-            return [ [ ref.id, this.fromJsonDoc(Object.assign({}, { version }, { template: ref })) ] ]
+            return [ ref.id, this.fromJsonDoc(Object.assign({}, { version, template: ref })) ]
         }
         else {
             throw new Error(`Unsupported template reference type: ${typeof ref}`)
