@@ -1,0 +1,154 @@
+#!/usr/bin/env node
+
+const cli = require("command-line-args")
+const fs = require("fs-extra")
+const lo = require("lodash")
+const path = require("path")
+const tmp = require("tmp")
+const winston = require("winston")
+
+const Pagoda = require("../src")
+
+
+tmp.setGracefulCleanup()
+winston.add(winston.transports.File, { filename: "pagoda.log" })
+winston.remove(winston.transports.Console)
+
+main()
+
+function main() {
+    const mainCommandOptions = cli([
+        { name: "command", type: String, defaultOption: true },
+    ], {
+        stopAtFirstUnknown: true
+    })
+    const argv = mainCommandOptions._unknown || []
+    const command = mainCommandOptions["command"]
+
+    switch (command) {
+    case "manifest":
+        handleManifestCommand(argv)
+        break
+    default:
+        /* TODO: print help */
+        break
+    }
+}
+
+function handleManifestCommand(argv) {
+    const subCommandOptions = cli([
+        { name: "command", type: String, defaultOption: true },
+    ], { stopAtFirstUnknown: true, argv })
+    const nextArgv = subCommandOptions._unknown || []
+    const subCommand = subCommandOptions["command"]
+
+    switch (subCommand) {
+    case "dump":
+        handleManifestDumpCommand(nextArgv)
+        break
+    case "compile":
+        handleManifestCompileCommand(nextArgv)
+        break
+    default:
+        /* TODO: print help */
+    }
+}
+
+function handleManifestDumpCommand(argv) {
+    const options = cli([
+        { name: "logLevel", type: String },
+        { name: "outputDir", type: String },
+        { name: "manifest", type: String, defaultOption: true },
+    ], { argv })
+    winston.level = options["logLevel"] || "info"
+    const outputDir = options["outputDir"] || tmp.dirSync().name
+
+    const manifestFilepath = options["manifest"] || "manifest.yaml"
+    const manifestDAO = new Pagoda.ManifestCompiler.ManifestDAO([
+        path.dirname(path.resolve(process.cwd(), manifestFilepath)),
+        path.resolve(process.cwd(), "manifests"),
+        path.resolve(__dirname, "../share/manifests"),
+        process.cwd(),
+    ])
+    const templateDAO = new Pagoda.ManifestCompiler.TemplateDAO([
+        path.dirname(path.resolve(process.cwd(), manifestFilepath)),
+        path.resolve(process.cwd(), "templates"),
+        path.resolve(__dirname, "../share/templates"),
+        process.cwd(),
+    ])
+    const stereotypeDAO = new Pagoda.ManifestCompiler.StereotypeDAO([
+        path.dirname(path.resolve(process.cwd(), manifestFilepath)),
+        path.resolve(process.cwd(), "stereotypes"),
+        path.resolve(__dirname, "../share/stereotypes"),
+        process.cwd(),
+    ])
+
+    try {
+        (async function main() {
+            const unexpandedManifest = await manifestDAO.fromYamlFile(manifestFilepath)
+            const manifest = await unexpandedManifest.expand({
+                stereotypeDAO: stereotypeDAO,
+                manifestDAO: manifestDAO,
+                templateDAO: templateDAO,
+                context: unexpandedManifest,
+            })
+            console.log(manifestDAO.toYaml(manifest))
+        })()
+    }
+    catch (e) {
+        winston.error(e)
+        console.error(e)
+    }
+}
+
+function handleManifestCompileCommand(argv) {
+    const options = cli([
+        { name: "logLevel", type: String },
+        { name: "outputDir", type: String },
+        { name: "manifest", type: String, defaultOption: true },
+    ], { argv })
+    winston.level = options["logLevel"] || "info"
+    const outputDir = options["outputDir"] || tmp.dirSync().name
+
+    const manifestFilepath = options["manifest"] || "manifest.yaml"
+    const manifestDAO = new Pagoda.ManifestCompiler.ManifestDAO([
+        path.dirname(path.resolve(process.cwd(), manifestFilepath)),
+        path.resolve(process.cwd(), "manifests"),
+        path.resolve(__dirname, "../share/manifests"),
+        process.cwd(),
+    ])
+    const templateDAO = new Pagoda.ManifestCompiler.TemplateDAO([
+        path.dirname(path.resolve(process.cwd(), manifestFilepath)),
+        path.resolve(process.cwd(), "templates"),
+        path.resolve(__dirname, "../share/templates"),
+        process.cwd(),
+    ])
+    const stereotypeDAO = new Pagoda.ManifestCompiler.StereotypeDAO([
+        path.dirname(path.resolve(process.cwd(), manifestFilepath)),
+        path.resolve(process.cwd(), "stereotypes"),
+        path.resolve(__dirname, "../share/stereotypes"),
+        process.cwd(),
+    ])
+
+    try {
+        (async function main() {
+            const unexpandedManifest = await manifestDAO.fromYamlFile(manifestFilepath)
+            const manifest = await unexpandedManifest.expand({
+                stereotypeDAO: stereotypeDAO,
+                manifestDAO: manifestDAO,
+                templateDAO: templateDAO,
+                context: unexpandedManifest,
+            })
+            await fs.ensureDir(outputDir)
+            await manifestDAO.toYamlFile(manifest, path.join(outputDir, 'manifest.yaml'))
+            const templates = await manifest.collectTemplates()
+            lo.forEach(templates, async (val, key) => {
+                await fs.writeFile(path.join(outputDir, key), val)
+            })
+        })()
+    }
+    catch (e) {
+        winston.error(e)
+        console.error(e)
+    }
+}

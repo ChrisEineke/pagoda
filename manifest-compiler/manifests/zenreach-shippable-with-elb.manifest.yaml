@@ -1,5 +1,0 @@
-version: 1
-manifest:
-  templates:
-    - zenreach-shippable-jobs
-    - zenreach-shippable-resources

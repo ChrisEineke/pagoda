@@ -1,9 +1,9 @@
 {
-  "name": "manifest-compiler",
+  "name": "pagoda",
   "version": "1.0.0",
-  "description": "Manifest compiler of the Zenreach(TM) Pagoda DevOps Toolchain",
+  "description": "The Zenreach(TM) Pagoda DevOps Toolchain",
   "main": "index.js",
-  "bin": "./bin/pagoda-manifest",
+  "bin": "./bin/pagoda",
   "scripts": {
     "test": "test"
   },
