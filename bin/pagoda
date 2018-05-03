@@ -64,24 +64,9 @@ function handleManifestDumpCommand(argv) {
     const outputDir = options["outputDir"] || tmp.dirSync().name
 
     const manifestFilepath = options["manifest"] || "manifest.yaml"
-    const manifestDAO = new Pagoda.ManifestCompiler.ManifestDAO([
-        path.dirname(path.resolve(process.cwd(), manifestFilepath)),
-        path.resolve(process.cwd(), "manifests"),
-        path.resolve(__dirname, "../share/manifests"),
-        process.cwd(),
-    ])
-    const templateDAO = new Pagoda.ManifestCompiler.TemplateDAO([
-        path.dirname(path.resolve(process.cwd(), manifestFilepath)),
-        path.resolve(process.cwd(), "templates"),
-        path.resolve(__dirname, "../share/templates"),
-        process.cwd(),
-    ])
-    const stereotypeDAO = new Pagoda.ManifestCompiler.StereotypeDAO([
-        path.dirname(path.resolve(process.cwd(), manifestFilepath)),
-        path.resolve(process.cwd(), "stereotypes"),
-        path.resolve(__dirname, "../share/stereotypes"),
-        process.cwd(),
-    ])
+    const manifestDAO = makeManifestDAO(manifestFilepath)
+    const templateDAO = makeTemplateDAO(manifestFilepath)
+    const stereotypeDAO = makeStereotypeDAO(manifestFilepath)
 
     try {
         (async function main() {
@@ -111,24 +96,9 @@ function handleManifestCompileCommand(argv) {
     const outputDir = options["outputDir"] || tmp.dirSync().name
 
     const manifestFilepath = options["manifest"] || "manifest.yaml"
-    const manifestDAO = new Pagoda.ManifestCompiler.ManifestDAO([
-        path.dirname(path.resolve(process.cwd(), manifestFilepath)),
-        path.resolve(process.cwd(), "manifests"),
-        path.resolve(__dirname, "../share/manifests"),
-        process.cwd(),
-    ])
-    const templateDAO = new Pagoda.ManifestCompiler.TemplateDAO([
-        path.dirname(path.resolve(process.cwd(), manifestFilepath)),
-        path.resolve(process.cwd(), "templates"),
-        path.resolve(__dirname, "../share/templates"),
-        process.cwd(),
-    ])
-    const stereotypeDAO = new Pagoda.ManifestCompiler.StereotypeDAO([
-        path.dirname(path.resolve(process.cwd(), manifestFilepath)),
-        path.resolve(process.cwd(), "stereotypes"),
-        path.resolve(__dirname, "../share/stereotypes"),
-        process.cwd(),
-    ])
+    const manifestDAO = makeManifestDAO(manifestFilepath)
+    const templateDAO = makeTemplateDAO(manifestFilepath)
+    const stereotypeDAO = makeStereotypeDAO(manifestFilepath)
 
     try {
         (async function main() {
@@ -151,4 +121,33 @@ function handleManifestCompileCommand(argv) {
         winston.error(e)
         console.error(e)
     }
+}
+
+function makeManifestDAO(manifestFilepath) {
+    const dirpaths = []
+    dirpaths.push(path.dirname(path.resolve(process.cwd(), manifestFilepath)))
+    for (const i of ["manifests", "resources", "integrations", "deployments"]) {
+        dirpaths.push(path.resolve(process.cwd(), i))
+        dirpaths.push(path.resolve(__dirname, `../share/${i}`))
+    }
+    dirpaths.push(process.cwd())
+    return new Pagoda.ManifestCompiler.ManifestDAO(dirpaths)
+}
+
+function makeTemplateDAO(manifestFilepath) {
+    const dirpaths = []
+    dirpaths.push(path.dirname(path.resolve(process.cwd(), manifestFilepath)))
+    dirpaths.push(path.resolve(process.cwd(), "templates"))
+    dirpaths.push(path.resolve(__dirname, "../share/templates"))
+    dirpaths.push(process.cwd())
+    return new Pagoda.ManifestCompiler.TemplateDAO(dirpaths)
+}
+
+function makeStereotypeDAO(manifestFilepath) {
+    const dirpaths = []
+    dirpaths.push(path.dirname(path.resolve(process.cwd(), manifestFilepath)))
+    dirpaths.push(path.resolve(process.cwd(), "stereotypes"))
+    dirpaths.push(path.resolve(__dirname, "../share/stereotypes"))
+    dirpaths.push(process.cwd())
+    return new Pagoda.ManifestCompiler.StereotypeDAO(dirpaths)
 }
