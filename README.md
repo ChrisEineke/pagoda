@@ -5,8 +5,8 @@
 
 # Setup
 ```
-nvm install stable
-nvm use stable
+nvm install v8.11.0  # or higher
+nvm use v8.11.0      # or higher
 npm install
 npm link
 ```

@@ -4,7 +4,6 @@ const lo = require("lodash")
 const path = require("path")
 const raise = require("./raiseFn")
 const renderTemplate = require("./render-template")
-const util = require("util")
 const winston = require("winston")
 const yaml = require("js-yaml")
 
@@ -106,7 +105,7 @@ class TemplateDAO {
         } else {
             templates = doc.templates
         }
-        return templates.map(function (template, i) {
+        return templates.map(function (template) {
             return new TemplateV1(template.id, template.contents)
         })
     }

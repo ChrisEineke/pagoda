@@ -1,4 +1,6 @@
+.eslintcache/
 gen/
 node_modules/
+npm-debug.log
 pagoda.log
 *.swp

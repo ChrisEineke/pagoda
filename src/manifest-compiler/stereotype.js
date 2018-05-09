@@ -5,7 +5,6 @@ const ManifestV1 = require("./manifest").ManifestV1
 const path = require("path")
 const raise = require("./raiseFn")
 const renderTemplate = require("./render-template")
-const util = require("util")
 const walkAsync = require("./walk-async")
 const winston = require("winston")
 const yaml = require("js-yaml")
