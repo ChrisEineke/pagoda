@@ -123,10 +123,15 @@ function handleManifestCompileCommand(argv) {
 
 function makeManifestDAO(manifestFilepath) {
     const dirpaths = []
-    dirpaths.push(path.dirname(path.resolve(process.cwd(), manifestFilepath)))
+    const absManifestFilepath = path.resolve(process.cwd(), manifestFilepath)
+
+    dirpaths.push(path.dirname(absManifestFilepath))
     for (const i of ["manifests", "resources", "integrations", "deployments"]) {
+        // directories in the directory that contains the manifest
+        dirpaths.push(path.resolve(path.dirname(absManifestFilepath), i))
+        // directories in the current working directory
         dirpaths.push(path.resolve(process.cwd(), i))
-        dirpaths.push(path.resolve(__dirname, `../share/${i}`))
+        // the current working directory
     }
     dirpaths.push(process.cwd())
     return new Pagoda.ManifestCompiler.ManifestDAO(dirpaths)
@@ -134,18 +139,32 @@ function makeManifestDAO(manifestFilepath) {
 
 function makeTemplateDAO(manifestFilepath) {
     const dirpaths = []
-    dirpaths.push(path.dirname(path.resolve(process.cwd(), manifestFilepath)))
+    const absManifestFilepath = path.resolve(process.cwd(), manifestFilepath)
+
+    // 'templates' directory in the directory that contains the manifest
+    dirpaths.push(path.resolve(path.dirname(absManifestFilepath), "templates"))
+    // directory that contains the manifest
+    dirpaths.push(path.dirname(absManifestFilepath))
+    // 'templates' directory in the current working directory
     dirpaths.push(path.resolve(process.cwd(), "templates"))
-    dirpaths.push(path.resolve(__dirname, "../share/templates"))
+    // the current working directory
     dirpaths.push(process.cwd())
+
     return new Pagoda.ManifestCompiler.TemplateDAO(dirpaths)
 }
 
 function makeStereotypeDAO(manifestFilepath) {
     const dirpaths = []
-    dirpaths.push(path.dirname(path.resolve(process.cwd(), manifestFilepath)))
+    const absManifestFilepath = path.resolve(process.cwd(), manifestFilepath)
+
+    // 'stereotypes' directory in the directory that contains the manifest
+    dirpaths.push(path.resolve(path.dirname(absManifestFilepath), "stereotypes"))
+    // directory that contains the manifest
+    dirpaths.push(path.dirname(absManifestFilepath))
+    // 'stereotypes' directory in the current working directory
     dirpaths.push(path.resolve(process.cwd(), "stereotypes"))
-    dirpaths.push(path.resolve(__dirname, "../share/stereotypes"))
+    // the current working directory
     dirpaths.push(process.cwd())
+
     return new Pagoda.ManifestCompiler.StereotypeDAO(dirpaths)
 }
