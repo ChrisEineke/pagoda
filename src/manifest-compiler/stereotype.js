@@ -1,4 +1,5 @@
 const Ajv = require("ajv")
+const always = require("./always")
 const fs = require("fs-extra")
 const lo = require("lodash")
 const ManifestV1 = require("./manifest").ManifestV1
@@ -19,12 +20,12 @@ class StereotypeV1 {
     constructor(id, owner, requires, defines, resources, integrations, deployments, templates) {
         this.id = id
         this.owner = owner
-        this.requires = requires || []
-        this.defines = defines || {}
-        this.resources = resources || []
-        this.integrations = integrations || []
-        this.deployments = deployments || []
-        this.templates = templates || []
+        this.requires = requires
+        this.defines = defines
+        this.resources = resources
+        this.integrations = integrations
+        this.deployments = deployments
+        this.templates = templates
     }
 
     async render(context) {
@@ -53,12 +54,12 @@ class StereotypeV1 {
             this.id,
             this.owner,
             null,
-            requires,
-            defines,
-            resources,
-            integrations,
-            deployments,
-            templates)
+            always.Array(requires),
+            always.Object(defines),
+            always.Array(resources),
+            always.Array(integrations),
+            always.Array(deployments),
+            always.Array(templates))
     }
 
 }
@@ -119,12 +120,12 @@ class StereotypeDAO {
         return new StereotypeV1(
             doc.stereotype.id,
             doc.stereotype.owner,
-            doc.stereotype.requires,
-            doc.stereotype.defines,
-            doc.stereotype.resources,
-            doc.stereotype.integrations,
-            doc.stereotype.deployments,
-            doc.stereotype.templates)
+            always.Array(doc.stereotype.requires),
+            always.Object(doc.stereotype.defines),
+            always.Array(doc.stereotype.resources),
+            always.Array(doc.stereotype.integrations),
+            always.Array(doc.stereotype.deployments),
+            always.Array(doc.stereotype.templates))
     }
 }
 

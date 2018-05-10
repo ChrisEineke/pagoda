@@ -1,4 +1,5 @@
 const Ajv = require("ajv")
+const always = require("./always")
 const fs = require("fs-extra")
 const lo = require("lodash")
 const path = require("path")
@@ -13,16 +14,16 @@ const validateManifest = ajv.compile(schema)
 
 class ManifestV1 {
 
-    constructor(id, owner, stereotype, requires, defines, resources, integrations, deployments, templates) {
+    constructor(id, owner, stereotypes, requires, defines, resources, integrations, deployments, templates) {
         this.id = id
         this.owner = owner
-        this.stereotype = stereotype
-        this.requires = requires || []
-        this.defines = defines || {}
-        this.resources = resources || []
-        this.integrations = integrations || []
-        this.deployments = deployments || []
-        this.templates = templates || []
+        this.stereotypes = stereotypes
+        this.requires = requires
+        this.defines = defines
+        this.resources = resources
+        this.integrations = integrations
+        this.deployments = deployments
+        this.templates = templates
     }
 
     async expand(args) {
@@ -40,7 +41,7 @@ class ManifestV1 {
             ...args.context,
         }
         winston.debug("Expanding manifest %s with the following bindings: %j", this.id, args.context)
-        await this._applyStereotype(args)
+        await this._applyStereotypes(args)
         await this._expandRequires(args)
         await this._expandDefines(args)
         await this._expandResources(args)
@@ -50,22 +51,26 @@ class ManifestV1 {
         return this
     }
 
-    async _applyStereotype(args) {
-        if (!this.stereotype) {
-            winston.debug("No stereotype provided.")
+    async _applyStereotypes(args) {
+        if (!this.stereotypes || this.stereotypes.length === 0) {
+            winston.debug("No stereotypes to be applied.")
             return this
         }
-        winston.debug("Applying stereotype %s...", this.stereotype)
-        const stereotype = await args.stereotypeDAO.fromId(this.stereotype)
-        const stereotypeManifest = await stereotype.render(args.context)
-        Array.prototype.unshift.call(this.requires, ...stereotypeManifest.requires)
-        Object.assign(this.defines, stereotypeManifest.defines)
-        Array.prototype.unshift.call(this.resources, ...stereotypeManifest.resources)
-        Array.prototype.unshift.call(this.integrations, ...stereotypeManifest.integrations)
-        Array.prototype.unshift.call(this.deployments, ...stereotypeManifest.deployments)
-        Array.prototype.unshift.call(this.templates, ...stereotypeManifest.templates)
-        winston.debug("Applied stereotype %s.", this.stereotype)
-        this.stereotype = undefined
+        if (!lo.isArray(this.stereotypes)) {
+            this.stereotypes = [ this.stereotypes ]
+        }
+        for (const stereotypeId of this.stereotypes) {
+            winston.debug("Applying stereotype %s...", stereotypeId)
+            const stereotype = await args.stereotypeDAO.fromId(stereotypeId)
+            const stereotypeManifest = await stereotype.render(args.context)
+            Array.prototype.unshift.call(this.requires, ...stereotypeManifest.requires)
+            Object.assign(this.defines, stereotypeManifest.defines)
+            Array.prototype.unshift.call(this.resources, ...stereotypeManifest.resources)
+            Array.prototype.unshift.call(this.integrations, ...stereotypeManifest.integrations)
+            Array.prototype.unshift.call(this.deployments, ...stereotypeManifest.deployments)
+            Array.prototype.unshift.call(this.templates, ...stereotypeManifest.templates)
+            winston.debug("Applied stereotype %s.", stereotypeId)
+        }
         return this
     }
 
@@ -205,13 +210,13 @@ class ManifestDAO {
         return new ManifestV1(
             doc.manifest.id,
             doc.manifest.owner,
-            doc.manifest.stereotype,
-            doc.manifest.require ? [ doc.manifest.require ] : doc.manifest.requires,
-            doc.manifest.defines,
-            doc.manifest.resource ? [ doc.manifest.resource ] : doc.manifest.resources,
-            doc.manifest.integration ? [ doc.manifest.integration ] : doc.manifest.integrations,
-            doc.manifest.deployment ? [ doc.manifest.integration ] : doc.manifest.deployments,
-            doc.manifest.template ? [ doc.manifest.template ] : doc.manifest.templates)
+            always.Array(doc.manifest.stereotypes),
+            always.Array(doc.manifest.requires),
+            always.Object(doc.manifest.defines),
+            always.Array(doc.manifest.resources),
+            always.Array(doc.manifest.integrations),
+            always.Array(doc.manifest.deployments),
+            always.Array(doc.manifest.templates))
     }
 
    toYaml(manifest) {

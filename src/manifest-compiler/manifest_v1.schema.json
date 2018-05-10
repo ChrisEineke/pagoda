@@ -17,7 +17,7 @@
             "properties": {
                 "id":           { "$ref": "#/definitions/id" },
                 "owner":        { "$ref": "#/definitions/owner" },
-                "stereotype":   { "$ref": "#/definitions/stereotype" },
+                "stereotypes":  { "$ref": "#/definitions/arrayOfManifestRefs" },
                 "requires":     { "$ref": "#/definitions/requires" },
                 "defines":      { "$ref": "#/definitions/defines" },
                 "resources":    { "$ref": "#/definitions/arrayOfManifestRefs" },
@@ -28,11 +28,12 @@
         },
         "id": { "type": "string" },
         "owner": { "type": "string" },
-        "stereotype": { "$ref": "#/definitions/id" },
         "requires": {
             "oneOf": [ {
                 "type": "array",
                 "items": { "$ref": "#/definitions/id" }
+            }, {
+                "$ref": "#/definitions/id"
             }, {
                 "type": "null"
             } ]
@@ -55,6 +56,10 @@
                     } ]
                 }
             }, {
+                "$ref": "#/definitions/id"
+            }, {
+                "$ref": "#/definitions/manifest"
+            }, {
                 "type": "null"
             } ]
         },
@@ -71,6 +76,8 @@
                         }
                     } ]
                 }
+            }, {
+                "$ref": "#/definitions/id"
             }, {
                 "type": "null"
             } ]
