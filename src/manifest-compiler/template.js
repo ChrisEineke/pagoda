@@ -8,7 +8,7 @@ const winston = require("winston")
 const yaml = require("js-yaml")
 
 
-const ajv = new Ajv()
+const ajv = new Ajv({ useDefaults: true })
 const schema = require("./template_v1.schema.json")
 const validateTemplate = ajv.compile(schema)
 

@@ -10,6 +10,10 @@
     "definitions": {
         "version": { "type": "integer" },
         "id": { "type": "string" },
+        "format": {
+            "type": "string",
+            "default": "liquidjs"
+        },
         "templates": {
             "oneOf": [ {
                 "type": "array",
