@@ -3,11 +3,10 @@
 const cli = require("command-line-args")
 const fs = require("fs-extra")
 const lo = require("lodash")
+const Pagoda = require("../src")
 const path = require("path")
 const tmp = require("tmp")
 const winston = require("winston")
-
-const Pagoda = require("../src")
 
 
 tmp.setGracefulCleanup()
@@ -64,19 +63,13 @@ function handleManifestDumpCommand(argv) {
     const outputDir = options["outputDir"] || tmp.dirSync().name
 
     const manifestFilepath = options["manifest"] || "manifest.yaml"
-    const manifestDAO = makeManifestDAO(manifestFilepath)
-    const templateDAO = makeTemplateDAO(manifestFilepath)
-    const stereotypeDAO = makeStereotypeDAO(manifestFilepath)
+    const documentDAO = Pagoda.ManifestCompiler.DocumentDAO.createBasedOnManifestFilepath(manifestFilepath)
 
     try {
         (async function main() {
-            const unexpandedManifest = await manifestDAO.fromYamlFile(manifestFilepath)
-            const manifest = await unexpandedManifest.expand({
-                stereotypeDAO: stereotypeDAO,
-                manifestDAO: manifestDAO,
-                templateDAO: templateDAO
-            })
-            console.log(manifestDAO.toYaml(manifest))
+            const [ _, unexpandedManifest ] = await documentDAO.getManifest(manifestFilepath)
+            const manifest = await unexpandedManifest.expand({ documentDAO })
+            console.log(await documentDAO.putManifest(null, manifest))
         })()
     }
     catch (e) {
@@ -95,20 +88,14 @@ function handleManifestCompileCommand(argv) {
     const outputDir = options["outputDir"] || tmp.dirSync().name
 
     const manifestFilepath = options["manifest"] || "manifest.yaml"
-    const manifestDAO = makeManifestDAO(manifestFilepath)
-    const templateDAO = makeTemplateDAO(manifestFilepath)
-    const stereotypeDAO = makeStereotypeDAO(manifestFilepath)
+    const documentDAO = Pagoda.ManifestCompiler.DocumentDAO.createBasedOnManifestFilepath(manifestFilepath)
 
     try {
         (async function main() {
-            const unexpandedManifest = await manifestDAO.fromYamlFile(manifestFilepath)
-            const manifest = await unexpandedManifest.expand({
-                stereotypeDAO: stereotypeDAO,
-                manifestDAO: manifestDAO,
-                templateDAO: templateDAO
-            })
+            const [ _, unexpandedManifest ] = await documentDAO.getManifest(manifestFilepath)
+            const manifest = await unexpandedManifest.expand({ documentDAO })
             await fs.ensureDir(outputDir)
-            await manifestDAO.toYamlFile(manifest, path.join(outputDir, 'manifest.yaml'))
+            await documentDAO.putManifest(path.join(outputDir, 'manifest.yaml'), manifest)
             const templates = await manifest.collectTemplates()
             lo.forEach(templates, async (val, key) => {
                 await fs.writeFile(path.join(outputDir, key), val)
@@ -119,52 +106,4 @@ function handleManifestCompileCommand(argv) {
         winston.error(e)
         console.error(e)
     }
-}
-
-function makeManifestDAO(manifestFilepath) {
-    const dirpaths = []
-    const absManifestFilepath = path.resolve(process.cwd(), manifestFilepath)
-
-    dirpaths.push(path.dirname(absManifestFilepath))
-    for (const i of ["manifests", "resources", "integrations", "deployments"]) {
-        // directories in the directory that contains the manifest
-        dirpaths.push(path.resolve(path.dirname(absManifestFilepath), i))
-        // directories in the current working directory
-        dirpaths.push(path.resolve(process.cwd(), i))
-        // the current working directory
-    }
-    dirpaths.push(process.cwd())
-    return new Pagoda.ManifestCompiler.ManifestDAO(dirpaths)
-}
-
-function makeTemplateDAO(manifestFilepath) {
-    const dirpaths = []
-    const absManifestFilepath = path.resolve(process.cwd(), manifestFilepath)
-
-    // 'templates' directory in the directory that contains the manifest
-    dirpaths.push(path.resolve(path.dirname(absManifestFilepath), "templates"))
-    // directory that contains the manifest
-    dirpaths.push(path.dirname(absManifestFilepath))
-    // 'templates' directory in the current working directory
-    dirpaths.push(path.resolve(process.cwd(), "templates"))
-    // the current working directory
-    dirpaths.push(process.cwd())
-
-    return new Pagoda.ManifestCompiler.TemplateDAO(dirpaths)
-}
-
-function makeStereotypeDAO(manifestFilepath) {
-    const dirpaths = []
-    const absManifestFilepath = path.resolve(process.cwd(), manifestFilepath)
-
-    // 'stereotypes' directory in the directory that contains the manifest
-    dirpaths.push(path.resolve(path.dirname(absManifestFilepath), "stereotypes"))
-    // directory that contains the manifest
-    dirpaths.push(path.dirname(absManifestFilepath))
-    // 'stereotypes' directory in the current working directory
-    dirpaths.push(path.resolve(process.cwd(), "stereotypes"))
-    // the current working directory
-    dirpaths.push(process.cwd())
-
-    return new Pagoda.ManifestCompiler.StereotypeDAO(dirpaths)
 }

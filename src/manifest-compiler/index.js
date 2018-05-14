@@ -1,4 +1,6 @@
-Object.assign(module.exports
-    , require("./template")
-    , require("./manifest")
-    , require("./stereotype"))
+module.exports = {
+    TemplateV1: require("./template"),
+    ManifestV1: require("./manifest"),
+    StereotypeV1: require("./stereotype"),
+    DocumentDAO: require("./document-dao.js")
+}

@@ -1,19 +1,9 @@
-const Ajv = require("ajv")
 const always = require("./always")
-const fs = require("fs-extra")
-const lo = require("lodash")
-const ManifestV1 = require("./manifest").ManifestV1
-const path = require("path")
-const raise = require("./raiseFn")
+const ManifestV1 = require("./manifest")
 const renderTemplate = require("./render-template")
 const walkAsync = require("./walk-async")
 const winston = require("winston")
-const yaml = require("js-yaml")
 
-
-const ajv = new Ajv()
-const schema = require("./stereotype_v1.schema.json")
-const validateStereotype = ajv.compile(schema)
 
 class StereotypeV1 {
 
@@ -64,70 +54,4 @@ class StereotypeV1 {
 
 }
 
-class StereotypeDAO {
-
-    constructor(dirpaths) {
-        this.dirpaths = dirpaths
-        this.cache = {}
-    }
-
-    async fromId(id) {
-        winston.debug("Checking cache for stereotype %s...", id)
-        if (this.cache[id] !== undefined) {
-            winston.debug("Found stereotype %s in cache.", id)
-            return this.cache[id]
-        }
-        winston.debug("Couldn't find stereotype %s in cache.", id)
-
-        winston.debug("Searching the filsystem for stereotype %s...", id)
-        const competitors = this.dirpaths.map(dirpath => {
-            const contestant = path.join(dirpath, id + ".stereotype.yaml")
-            winston.debug("Will try %s...", contestant)
-            return contestant
-        })
-        const race = await Promise.all(competitors.map(competitor => {
-            return this.fromYamlFile(competitor)
-        }))
-        const winningPaths = lo.compact(race)
-        if (winningPaths.length === 0) {
-            winston.error("Failed to find stereotype file for %s.", id)
-            throw new Error(`Stereotype not found: ${id}`)
-        }
-        const winner = winningPaths[0]
-        this.cache[id] = winner
-        winston.debug("Added %s to the stereotype cache.", id)
-        return winner
-    }
-
-    fromYamlFile(filepath) {
-        try {
-            const doc = yaml.safeLoad(fs.readFileSync(filepath, "utf-8"))
-            return this.fromJsonDoc(doc)
-        }
-        catch (e) {
-            return null
-        }
-    }
-
-    fromJsonDoc(doc) {
-        const valid = validateStereotype(doc)
-        if (!valid) {
-            raise("Invalid stereotype format: %j", validateStereotype.errors)
-        }
-        if (doc.version != 1) {
-            raise("Invalid version: given %d, supported %d", doc.version, 1)
-        }
-        return new StereotypeV1(
-            doc.stereotype.id,
-            doc.stereotype.owner,
-            always.Array(doc.stereotype.requires),
-            always.Object(doc.stereotype.defines),
-            always.Array(doc.stereotype.resources),
-            always.Array(doc.stereotype.integrations),
-            always.Array(doc.stereotype.deployments),
-            always.Array(doc.stereotype.templates))
-    }
-}
-
-module.exports.StereotypeV1 = StereotypeV1
-module.exports.StereotypeDAO = StereotypeDAO
+module.exports = StereotypeV1

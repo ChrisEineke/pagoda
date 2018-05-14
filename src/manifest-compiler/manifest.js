@@ -1,16 +1,6 @@
-const Ajv = require("ajv")
-const always = require("./always")
-const fs = require("fs-extra")
 const lo = require("lodash")
-const path = require("path")
 const winston = require("winston")
-const yaml = require("js-yaml")
-const raise = require("./raiseFn")
 
-
-const ajv = new Ajv()
-const schema = require("./manifest_v1.schema.json")
-const validateManifest = ajv.compile(schema)
 
 class ManifestV1 {
 
@@ -61,7 +51,7 @@ class ManifestV1 {
         }
         for (const stereotypeId of this.stereotypes) {
             winston.debug("Applying stereotype %s...", stereotypeId)
-            const stereotype = await args.stereotypeDAO.fromId(stereotypeId)
+            const [ _, stereotype ] = await args.documentDAO.getStereotype(stereotypeId)
             const stereotypeManifest = await stereotype.render(args.context)
             Array.prototype.unshift.call(this.requires, ...stereotypeManifest.requires)
             Object.assign(this.defines, stereotypeManifest.defines)
@@ -85,7 +75,7 @@ class ManifestV1 {
     async _expandResources(args) {
         const expandedResources = {}
         for (const resourceRef of this.resources) {
-            const [ resourceId, resourceManifest ] = await args.manifestDAO.fromRef(resourceRef, 1)
+            const [ resourceId, resourceManifest ] = await args.documentDAO.getManifest(resourceRef)
             await resourceManifest.expand(args)
             expandedResources[resourceId] = resourceManifest
         }
@@ -96,7 +86,7 @@ class ManifestV1 {
     async _expandIntegrations(args) {
         const expandedIntegrations = {}
         for (const integrationRef of this.integrations) {
-            const [ integrationId, integrationManifest ] = await args.manifestDAO.fromRef(integrationRef, 1)
+            const [ integrationId, integrationManifest ] = await args.documentDAO.getManifest(integrationRef)
             await integrationManifest.expand(args)
             expandedIntegrations[integrationId] = integrationManifest
         }
@@ -107,7 +97,7 @@ class ManifestV1 {
     async _expandDeployments(args) {
         const expandedDeployments = {}
         for (const deploymentRef of this.deployments) {
-            const [ deploymentId, deploymentManifest ] = await args.manifestDAO.fromRef(deploymentRef, 1)
+            const [ deploymentId, deploymentManifest ] = await args.documentDAO.getManifest(deploymentRef)
             await deploymentManifest.expand(args)
             expandedDeployments[deploymentId] = deploymentManifest
         }
@@ -118,7 +108,7 @@ class ManifestV1 {
     async _expandTemplates(args) {
         const expandedTemplates = {}
         for (const templateRef of this.templates) {
-            const [ templateId, templates ] = await args.templateDAO.fromRef(templateRef, 1)
+            const [ _, templates ] = await args.documentDAO.getTemplate(templateRef)
             for (const template of templates) {
                 const res = await template.generate(args.context)
                 expandedTemplates[res.id] = res.contents
@@ -137,107 +127,4 @@ class ManifestV1 {
 
 }
 
-class ManifestDAO {
-
-    constructor(dirpaths) {
-        this.dirpaths = dirpaths
-        this.cache = {}
-    }
-
-    async fromRef(ref, version) {
-        if (lo.isString(ref)) {
-            return [ ref, await this.fromId(ref) ]
-        }
-        else if (lo.isArray(ref)) {
-            return ref.map(ref => {
-                return [ ref.id, this.fromJsonDoc(Object.assign({}, { version }, { manifests: ref })) ]
-            })
-        }
-        else if (lo.isObject(ref)) {
-            return [ ref.id, this.fromJsonDoc(Object.assign({}, { version }, { manifest: ref })) ]
-        }
-        else {
-            throw new Error(`Unsupported manifest reference type: ${typeof ref}`)
-        }
-    }
-
-    async fromId(id) {
-        winston.debug("Checking cache for manifest %s...", id)
-        if (this.cache[id] !== undefined) {
-            winston.debug("Found manifest %s in cache.", id)
-            return this.cache[id]
-        }
-        winston.debug("Couldn't find manifest %s in cache.", id)
-
-        winston.debug("Searching the filsystem for manifest %s...", id)
-        const competitors = this.dirpaths.map(dirpath => {
-            const contestant = path.join(dirpath, id + ".manifest.yaml")
-            winston.debug("Will try %s...", contestant)
-            return contestant
-        })
-        const race = await Promise.all(competitors.map(competitor => {
-            return this.fromYamlFile(competitor)
-        }))
-        const winningPaths = lo.compact(race)
-        if (winningPaths.length === 0) {
-            winston.error("Failed to find manifest file for %s.", id)
-            throw new Error(`Manifest not found: ${id}`)
-        }
-        const winner = winningPaths[0]
-        this.cache[id] = winner
-        winston.debug("Added %s to the manifest cache.", id)
-        return winner
-    }
-
-    fromYamlFile(filepath) {
-        try {
-            const doc = yaml.safeLoad(fs.readFileSync(filepath, "utf-8"))
-            return this.fromJsonDoc(doc)
-        }
-        catch (e) {
-            return null
-        }
-    }
-
-    fromJsonDoc(doc) {
-        const valid = validateManifest(doc)
-        if (!valid) {
-            raise("Invalid manifest format: %j", validateManifest.errors)
-        }
-        if (doc.version != 1) {
-            raise("Invalid version: given %d, supported %d", doc.version, 1)
-        }
-        return new ManifestV1(
-            doc.manifest.id,
-            doc.manifest.owner,
-            always.Array(doc.manifest.stereotypes),
-            always.Array(doc.manifest.requires),
-            always.Object(doc.manifest.defines),
-            always.Array(doc.manifest.resources),
-            always.Array(doc.manifest.integrations),
-            always.Array(doc.manifest.deployments),
-            always.Array(doc.manifest.templates))
-    }
-
-   toYaml(manifest) {
-        try {
-            return yaml.safeDump(manifest, { skipInvalid: true })
-        }
-        catch (e) {
-            winston.error("Failed to convert manifest to YAML.", e)
-            return null
-        }
-    }
-
-    toYamlFile(manifest, filepath) {
-        const doc = this.toYaml(manifest)
-        if (doc == null) {
-            return null
-        }
-        return fs.writeFile(filepath, doc)
-    }
-
-}
-
-module.exports.ManifestV1 = ManifestV1
-module.exports.ManifestDAO = ManifestDAO
+module.exports = ManifestV1
