@@ -1,6 +1,8 @@
-const Jsonnet = require('jsonnet');
+const check = require("check-types")
+const Jsonnet = require("jsonnet");
 const Liquid = require("liquidjs")
 const lo = require("lodash")
+
 
 const liquidJsEngine = Liquid({
     // strict_filters  is used to enable strict filter existence. If set to false, undefined filters will be rendered as
@@ -10,15 +12,15 @@ const liquidJsEngine = Liquid({
     // rendered as empty string. Otherwise, undefined variables will cause an exception. Defaults to false.
     strict_variables: true,
 })
-const jsonnetEngine = new Jsonnet();
+const jsonnetEngine = new Jsonnet()
 
 async function renderTemplate(text, context, engineName) {
-    if (!lo.isString(text)) {
+    if (check.not.string(text)) {
         return text
     }
     if (!engineName) {
         // Default to liquidjs because that's the syntax stereotypes use.
-        engineName = 'liquidjs'
+        engineName = "liquidjs"
     }
     switch (engineName.toLowerCase().trim()) {
     case "liquidjs":
@@ -27,7 +29,7 @@ async function renderTemplate(text, context, engineName) {
         // Generate a series of 'local <key> = <value>;' statements.
         const definitions = lo.flatMap(context, (value, key) => {
             return `local ${key} = ${JSON.stringify(value)};`
-        }).join('\n') + '\n'
+        }).join("\n") + "\n"
         return jsonnetEngine.eval(definitions + text)
     default:
         throw new Error(`Unsupported template engine ${engineName}`)

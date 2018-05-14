@@ -1,11 +1,12 @@
-const lo = require("lodash")
+const check = require("check-types")
+
 
 module.exports = {
     Object: function (v) {
-        if (lo.isObject(v)) {
+        if (check.object(v)) {
             return v
         }
-        else if (lo.isNil(v)) {
+        else if (check.maybe(v)) {
             return {}
         }
         else {
@@ -13,10 +14,10 @@ module.exports = {
         }
     },
     Array: function (v) {
-        if (lo.isArray(v)) {
+        if (check.array(v)) {
             return v
         }
-        else if (lo.isNil(v)) {
+        else if (check.maybe(v)) {
             return []
         }
         else {

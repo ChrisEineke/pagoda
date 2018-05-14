@@ -1,17 +1,19 @@
+const check = require("check-types")
 const lo = require("lodash")
 
+
 async function walkAsync(x, fn) {
-    if (lo.isArray(x)) {
+    if (check.array(x)) {
         const y = []
         for (const pair of lo.toPairs(x)) {
             y[pair[0]] = await walkAsync(pair[1], fn)
         }
         return y
     }
-    else if (lo.isObject(x)) {
+    else if (check.object(x)) {
         const y = {}
         for (const pair of lo.toPairs(x)) {
-            if (lo.isArray(pair[1]) || lo.isObject(pair[1])) {
+            if (check.array(pair[1]) || check.object(pair[1])) {
                 y[pair[0]] = await walkAsync(pair[1], fn)
             }
             else {

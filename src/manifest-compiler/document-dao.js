@@ -78,7 +78,7 @@ class DocumentDAO {
     }
 
     async getManifest(ref) {
-        if (lo.isString(ref)) {
+        if (check.string(ref)) {
             const isNameOfFile = await fs.pathExists(ref)
             if (isNameOfFile) {
                 return [ ref, await this._getManifestByFilename(ref) ]
@@ -87,12 +87,12 @@ class DocumentDAO {
                 return [ ref, await this._getManifestById(ref) ]
             }
         }
-        else if (lo.isArray(ref)) {
+        else if (check.array(ref)) {
             return ref.map(ref => {
                 return [ ref.id, this._getManifestFromJsonDoc(Object.assign({}, { version: 1 }, { manifests: ref })) ]
             })
         }
-        else if (lo.isObject(ref)) {
+        else if (check.object(ref)) {
             return [ ref.id, this._getManifestFromJsonDoc(Object.assign({}, { version: 1 }, { manifest: ref })) ]
         }
         else {
@@ -173,7 +173,7 @@ class DocumentDAO {
     }
 
     async getStereotype(ref) {
-        if (lo.isString(ref)) {
+        if (check.string(ref)) {
             const isNameOfFile = await fs.pathExists(ref)
             if (isNameOfFile) {
                 return [ ref, await this._getStereotypeByFilename(ref) ]
@@ -182,12 +182,12 @@ class DocumentDAO {
                 return [ ref, await this._getStereotypeById(ref) ]
             }
         }
-        else if (lo.isArray(ref)) {
+        else if (check.array(ref)) {
             return ref.map(ref => {
                 return [ ref.id, this._getStereotypeFromJsonDoc(Object.assign({}, { version: 1 }, { stereotypes: ref })) ]
             })
         }
-        else if (lo.isObject(ref)) {
+        else if (check.object(ref)) {
             return [ ref.id, this._getStereotypeFromJsonDoc(Object.assign({}, { version: 1 }, { stereotype: ref })) ]
         }
         else {
@@ -253,7 +253,7 @@ class DocumentDAO {
     }
 
     async getTemplate(ref) {
-        if (lo.isString(ref)) {
+        if (check.string(ref)) {
             const isNameOfFile = await fs.pathExists(ref)
             if (isNameOfFile) {
                 return [ ref, await this._getTemplateByFilename(ref) ]
@@ -262,12 +262,12 @@ class DocumentDAO {
                 return [ ref, await this._getTemplateById(ref) ]
             }
         }
-        else if (lo.isArray(ref)) {
+        else if (check.array(ref)) {
             return ref.map(ref => {
                 return [ ref.id, this._getTemplateFromJsonDoc(Object.assign({}, { version: 1 }, { templates: ref })) ]
             })
         }
-        else if (lo.isObject(ref)) {
+        else if (check.object(ref)) {
             return [ ref.id, this._getTemplateFromJsonDoc(Object.assign({}, { version: 1 }, { template: ref })) ]
         }
         else {

@@ -1,3 +1,4 @@
+const check = require("check-types")
 const lo = require("lodash")
 const winston = require("winston")
 
@@ -17,9 +18,8 @@ class ManifestV1 {
     }
 
     async expand(args) {
-        if (!lo.isObject(args)) {
-            throw new Error("args is not an object: " + args)
-        }
+        check.assert.object(args, "args is not an object: " + args)
+
         if (!args.context) {
             args.context = {
                 id: this.id,
@@ -46,7 +46,7 @@ class ManifestV1 {
             winston.debug("No stereotypes to be applied.")
             return this
         }
-        if (!lo.isArray(this.stereotypes)) {
+        if (check.not.array(this.stereotypes)) {
             this.stereotypes = [ this.stereotypes ]
         }
         for (const stereotypeId of this.stereotypes) {
