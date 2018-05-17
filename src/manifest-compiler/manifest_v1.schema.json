@@ -21,8 +21,8 @@
                 "requires":     { "$ref": "#/definitions/requires" },
                 "defines":      { "$ref": "#/definitions/defines" },
                 "resources":    { "$ref": "#/definitions/arrayOfManifestRefs" },
+                "pipelines":    { "$ref": "#/definitions/arrayOfManifestRefs" },
                 "integrations": { "$ref": "#/definitions/arrayOfManifestRefs" },
-                "deployments":  { "$ref": "#/definitions/arrayOfManifestRefs" },
                 "templates":    { "$ref": "#/definitions/arrayOfTemplateRefs" }
             }
         },

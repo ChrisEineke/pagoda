@@ -5,15 +5,15 @@ const winston = require("winston")
 
 class ManifestV1 {
 
-    constructor(id, owner, stereotypes, requires, defines, resources, integrations, deployments, templates) {
+    constructor(id, owner, stereotypes, requires, defines, resources, pipelines, integrations, templates) {
         this.id = id
         this.owner = owner
         this.stereotypes = stereotypes
         this.requires = requires
         this.defines = defines
         this.resources = resources
+        this.pipelines = pipelines
         this.integrations = integrations
-        this.deployments = deployments
         this.templates = templates
     }
 
@@ -35,8 +35,8 @@ class ManifestV1 {
         await this._expandRequires(args)
         await this._expandDefines(args)
         await this._expandResources(args)
+        await this._expandPipelines(args)
         await this._expandIntegrations(args)
-        await this._expandDeployments(args)
         await this._expandTemplates(args)
         return this
     }
@@ -56,8 +56,8 @@ class ManifestV1 {
             Array.prototype.unshift.call(this.requires, ...stereotypeManifest.requires)
             Object.assign(this.defines, stereotypeManifest.defines)
             Array.prototype.unshift.call(this.resources, ...stereotypeManifest.resources)
+            Array.prototype.unshift.call(this.pipelines, ...stereotypeManifest.pipelines)
             Array.prototype.unshift.call(this.integrations, ...stereotypeManifest.integrations)
-            Array.prototype.unshift.call(this.deployments, ...stereotypeManifest.deployments)
             Array.prototype.unshift.call(this.templates, ...stereotypeManifest.templates)
             winston.debug("Applied stereotype %s.", stereotypeId)
         }
@@ -83,6 +83,17 @@ class ManifestV1 {
         return this
     }
 
+    async _expandPipelines(args) {
+        const expandedPipelines = {}
+        for (const pipelineRef of this.pipelines) {
+            const [ pipelineId, pipelineManifest ] = await args.documentDAO.getManifest(pipelineRef)
+            await pipelineManifest.expand(args)
+            expandedPipelines[pipelineId] = pipelineManifest
+        }
+        this.pipelines = expandedPipelines
+        return this
+    }
+
     async _expandIntegrations(args) {
         const expandedIntegrations = {}
         for (const integrationRef of this.integrations) {
@@ -91,17 +102,6 @@ class ManifestV1 {
             expandedIntegrations[integrationId] = integrationManifest
         }
         this.integrations = expandedIntegrations
-        return this
-    }
-
-    async _expandDeployments(args) {
-        const expandedDeployments = {}
-        for (const deploymentRef of this.deployments) {
-            const [ deploymentId, deploymentManifest ] = await args.documentDAO.getManifest(deploymentRef)
-            await deploymentManifest.expand(args)
-            expandedDeployments[deploymentId] = deploymentManifest
-        }
-        this.deployments = expandedDeployments
         return this
     }
 
@@ -121,8 +121,8 @@ class ManifestV1 {
     collectTemplates() {
         return Object.assign({}, this.templates,
             ...lo.invokeMap(this.resources, "collectTemplates"),
-            ...lo.invokeMap(this.integrations, "collectTemplates"),
-            ...lo.invokeMap(this.deployments, "collectTemplates"))
+            ...lo.invokeMap(this.pipelines, "collectTemplates"),
+            ...lo.invokeMap(this.integrations, "collectTemplates"))
     }
 
 }

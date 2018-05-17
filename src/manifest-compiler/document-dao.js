@@ -44,7 +44,7 @@ class DocumentDAO {
 
         const manifestSearchpath = []
         manifestSearchpath.push(absManifestDirpath)
-        for (const i of ["manifests", "resources", "integrations", "deployments"]) {
+        for (const i of ["manifests", "resources", "pipelines", "integrations"]) {
             // directories in the directory that contains the manifest
             manifestSearchpath.push(path.resolve(path.dirname(absManifestFilepath), i))
             // directories in the current working directory
@@ -153,8 +153,8 @@ class DocumentDAO {
             always.Array(doc.manifest.requires),
             always.Object(doc.manifest.defines),
             always.Array(doc.manifest.resources),
+            always.Array(doc.manifest.pipelines),
             always.Array(doc.manifest.integrations),
-            always.Array(doc.manifest.deployments),
             always.Array(doc.manifest.templates))
     }
 
@@ -247,8 +247,8 @@ class DocumentDAO {
             always.Array(doc.stereotype.requires),
             always.Object(doc.stereotype.defines),
             always.Array(doc.stereotype.resources),
+            always.Array(doc.stereotype.pipelines),
             always.Array(doc.stereotype.integrations),
-            always.Array(doc.stereotype.deployments),
             always.Array(doc.stereotype.templates))
     }
 

@@ -7,14 +7,14 @@ const winston = require("winston")
 
 class StereotypeV1 {
 
-    constructor(id, owner, requires, defines, resources, integrations, deployments, templates) {
+    constructor(id, owner, requires, defines, resources, pipelines, integrations, templates) {
         this.id = id
         this.owner = owner
         this.requires = requires
         this.defines = defines
         this.resources = resources
+        this.pipelines = pipelines
         this.integrations = integrations
-        this.deployments = deployments
         this.templates = templates
     }
 
@@ -31,10 +31,10 @@ class StereotypeV1 {
         const resources = await walkAsync(this.resources, (k, v) => {
             return Promise.all([renderTemplate(k, context), renderTemplate(v, context) ])
         })
-        const integrations = await walkAsync(this.integrations, (k, v) => {
+        const pipelines = await walkAsync(this.pipelines, (k, v) => {
             return Promise.all([renderTemplate(k, context), renderTemplate(v, context) ])
         })
-        const deployments = await walkAsync(this.deployments, (k, v) => {
+        const integrations = await walkAsync(this.integrations, (k, v) => {
             return Promise.all([renderTemplate(k, context), renderTemplate(v, context) ])
         })
         const templates = await walkAsync(this.templates, (k, v) => {
@@ -47,8 +47,8 @@ class StereotypeV1 {
             always.Array(requires),
             always.Object(defines),
             always.Array(resources),
+            always.Array(pipelines),
             always.Array(integrations),
-            always.Array(deployments),
             always.Array(templates))
     }
 
